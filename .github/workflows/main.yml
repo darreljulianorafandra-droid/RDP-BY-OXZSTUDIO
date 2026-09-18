@@ -1,0 +1,84 @@
+# =============================================================
+# OXZRDP FREE RDP - STEALTH COMMUNITY VERSION (3 JAM)
+# =============================================================
+# INSTRUKSI PENGGUNAAN:
+# 1. Buat Repo baru, simpan file ini di .github/workflows/rdp.yml
+# 2. Ambil AUTH KEY di Tailscale.com.
+# 3. Masukkan ke Settings > Secrets > Actions (Nama: OXZ_KEY).
+# 4. Jalankan via tab ACTIONS.
+# =============================================================
+
+name: OXZRDP-FREE-3H
+on:
+  workflow_dispatch:
+
+jobs:
+  deployment:
+    runs-on: windows-latest
+    timeout-minutes: 180 # Dikunci ke 3 Jam agar akun lebih awet
+
+    steps:
+      - name: 1. System Preparation
+        run: |
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
+          Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
+          netsh advfirewall firewall set rule group="remote desktop" new enable=Yes
+          Restart-Service -Name TermService -Force
+
+      - name: 2. Identity Generation (Random)
+        run: |
+          $id = Get-Random -Minimum 1000 -Maximum 9999
+          $u = "UserOxz$id"
+          
+          # Password Aman & Stabil (Besar, Kecil, Angka)
+          $sets = @("ABCDEFGHJKLMNPQRSTUVWXYZ", "abcdefghijkmnpqrstuvwxyz", "23456789")
+          $p = ""
+          foreach ($s in $sets) { $p += $s[(Get-Random -Maximum $s.Length)] }
+          $all = -join $sets
+          for ($i=1; $i -le 11; $i++) { $p += $all[(Get-Random -Maximum $all.Length)] }
+          
+          echo "OXZRDP_USER=$u" >> $env:GITHUB_ENV
+          echo "OXZRDP_PASS=$p" >> $env:GITHUB_ENV
+          
+          net user $u $p /add /y
+          net localgroup Administrators $u /add
+
+      - name: 3. Deploy Branding
+        run: |
+          $Desktop = "C:\Users\Public\Desktop"
+          $Shell = New-Object -ComObject WScript.Shell
+          $Shortcut = $Shell.CreateShortcut("$Desktop\Vortexzzx-WEB.url")
+          $Shortcut.TargetPath = "https://oxzratxone-official.netlify.app"
+          $Shortcut.Save()
+
+      - name: 4. Secure Tunneling
+        run: |
+          $msi = "$env:TEMP\ts.msi"
+          Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi" -OutFile $msi
+          Start-Process msiexec.exe -ArgumentList "/i", "`"$msi`"", "/quiet", "/norestart" -Wait
+          
+          # Menggunakan Secret Key masing-masing user
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TS_KEY }} --hostname=OXZRDP-FREE-3H
+          
+          $ip = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+          echo "OXZRDP_IP=$ip" >> $env:GITHUB_ENV
+
+      - name: 5. Access Information
+        run: |
+          Write-Host "`n==============================================="
+          Write-Host " [ OXZRDP FREE RDP - ONLINE ]"
+          Write-Host "==============================================="
+          Write-Host " IP ADDRESS : $env:OXZRDP_IP"
+          Write-Host " USERNAME   : $env:OXZRDP_USER"
+          Write-Host " PASSWORD   : $env:OXZRDP_PASS"
+          Write-Host " DURASI     : 3 JAM (STEALTH)"
+          Write-Host "==============================================="
+          Write-Host " Website: https://oxzratxone-official.netlify.app"
+          Write-Host "==============================================="
+          
+          $start = Get-Date
+          while ((Get-Date) -lt $start.AddMinutes(175)) {
+              Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Station Online..."
+              Start-Sleep -Seconds 300
+          }
+          
