@@ -1,5 +1,5 @@
 # =============================================================
-# OXZRDP FREE RDP - STEALTH COMMUNITY VERSION (3 JAM)
+# OXZRDP FREE RDP - STEALTH COMMUNITY VERSION (1 HARI)
 # =============================================================
 # INSTRUKSI PENGGUNAAN:
 # 1. Buat Repo baru, simpan file ini di .github/workflows/rdp.yml
@@ -15,7 +15,7 @@ on:
 jobs:
   deployment:
     runs-on: windows-latest
-    timeout-minutes: 180 # Dikunci ke 3 Jam agar akun lebih awet
+    timeout-minutes: 1440 # Dikunci ke 1 hari agar akun lebih awet
 
     steps:
       - name: 1. System Preparation
@@ -58,7 +58,7 @@ jobs:
           Start-Process msiexec.exe -ArgumentList "/i", "`"$msi`"", "/quiet", "/norestart" -Wait
           
           # Menggunakan Secret Key masing-masing user
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TS_KEY }} --hostname=OXZRDP-FREE-3H
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.OXZ_KEY }} --hostname=OXZRDP-FREE-1HARI
           
           $ip = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
           echo "OXZRDP_IP=$ip" >> $env:GITHUB_ENV
@@ -71,7 +71,7 @@ jobs:
           Write-Host " IP ADDRESS : $env:OXZRDP_IP"
           Write-Host " USERNAME   : $env:OXZRDP_USER"
           Write-Host " PASSWORD   : $env:OXZRDP_PASS"
-          Write-Host " DURASI     : 3 JAM (STEALTH)"
+          Write-Host " DURASI     : 1 HARI (STEALTH)"
           Write-Host "==============================================="
           Write-Host " Website: https://oxzratxone-official.netlify.app"
           Write-Host "==============================================="
@@ -81,4 +81,4 @@ jobs:
               Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Station Online..."
               Start-Sleep -Seconds 300
           }
-          
+
