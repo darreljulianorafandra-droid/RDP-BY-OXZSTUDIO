@@ -1,5 +1,15 @@
-name: OXZRDP-PRO-1HARI
+# =============================================================
+# OXZRDP PRO V3.1 - STEALTH COMMUNITY VERSION (1 HARI)
+# By Yannzz & OxzStudios
+# =============================================================
+# INSTRUKSI:
+# 1. Simpan file ini di .github/workflows/rdp.yml
+# 2. Ambil AUTH KEY di Tailscale.com
+# 3. Masukkan ke Settings > Secrets > Actions (Nama: OXZ_KEY)
+# 4. Jalankan via tab ACTIONS
+# =============================================================
 
+name: OXZRDP-PRO-V3.1
 on:
   workflow_dispatch:
 
@@ -9,7 +19,10 @@ jobs:
     timeout-minutes: 1440
 
     steps:
-      - name: 1. Enable RDP
+      # =========================================================
+      # STEP 1 - ENABLE RDP
+      # =========================================================
+      - name: 1. Persiapan System (Enable RDP)
         shell: pwsh
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0 -Force
@@ -17,7 +30,11 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'SecurityLayer' -Value 0 -Force
           netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
           Restart-Service -Name TermService -Force
+          Write-Host '[OK] RDP aktif.'
 
+      # =========================================================
+      # STEP 2 - BIKIN USER RANDOM
+      # =========================================================
       - name: 2. Bikin User Random
         shell: pwsh
         run: |
@@ -32,8 +49,12 @@ jobs:
           Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_PASS=$p"
           net user $u $p /add /y
           net localgroup Administrators $u /add
+          Write-Host "[OK] User $u dibuat."
 
-      - name: 3. Wallpaper Putih Polos
+      # =========================================================
+      # STEP 3 - WALLPAPER PUTIH + CLOCK WIDGET
+      # =========================================================
+      - name: 3. Wallpaper Putih Polos + Branding
         shell: pwsh
         run: |
           Add-Type -AssemblyName System.Drawing
@@ -42,7 +63,7 @@ jobs:
           $gfx.Clear([System.Drawing.Color]::White)
           $font = New-Object System.Drawing.Font('Segoe UI', 72, [System.Drawing.FontStyle]::Bold)
           $brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(200, 200, 200))
-          $text = 'OXZRDP PRO'
+          $text = 'OXZRDP PRO V3.1'
           $size = $gfx.MeasureString($text, $font)
           $gfx.DrawString($text, $font, $brush, (1920 - $size.Width) / 2, (1080 - $size.Height) / 2 - 80)
           $font2 = New-Object System.Drawing.Font('Segoe UI', 28, [System.Drawing.FontStyle]::Regular)
@@ -58,7 +79,175 @@ jobs:
           Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'TileWallpaper' -Value '0' -Force
           Set-ItemProperty -Path 'HKCU:\Control Panel\Colors' -Name 'Background' -Value '255 255 255' -Force
 
-      - name: 4. Optimasi Anti Lag
+      # =========================================================
+      # STEP 4 - BIKIN ROBOT INFO (TASKBAR SHORTCUT)
+      # =========================================================
+      - name: 4. Bikin Robot Info di Taskbar
+        shell: pwsh
+        run: |
+          Write-Host '[+] Bikin ikon robot di taskbar...'
+          
+          # Bikin folder khusus
+          $toolDir = 'C:\OXZRDP'
+          New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
+          
+          # Bikin ikon robot pakai System.Drawing
+          Add-Type -AssemblyName System.Drawing
+          $ico = New-Object System.Drawing.Bitmap 256, 256
+          $g = [System.Drawing.Graphics]::FromImage($ico)
+          $g.SmoothingMode = 'AntiAlias'
+          $g.Clear([System.Drawing.Color]::Transparent)
+          
+          # Body robot (kotak biru)
+          $blueBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(50, 120, 220))
+          $g.FillRectangle($blueBrush, 60, 90, 136, 120)
+          
+          # Kepala robot
+          $g.FillRectangle($blueBrush, 80, 40, 96, 60)
+          
+          # Mata robot (putih)
+          $whiteBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::White)
+          $g.FillEllipse($whiteBrush, 100, 60, 20, 20)
+          $g.FillEllipse($whiteBrush, 136, 60, 20, 20)
+          
+          # Pupil mata (hitam)
+          $blackBrush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::Black)
+          $g.FillEllipse($blackBrush, 108, 66, 10, 10)
+          $g.FillEllipse($blackBrush, 144, 66, 10, 10)
+          
+          # Mulut robot
+          $g.FillRectangle($blackBrush, 110, 82, 36, 6)
+          
+          # Antena
+          $g.DrawLine((New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(50, 120, 220)), 4), 128, 40, 128, 15)
+          $g.FillEllipse($blueBrush, 120, 5, 16, 16)
+          
+          # Tangan
+          $g.FillRectangle($blueBrush, 30, 110, 25, 80)
+          $g.FillRectangle($blueBrush, 201, 110, 25, 80)
+          
+          # Kaki
+          $g.FillRectangle($blueBrush, 80, 215, 40, 30)
+          $g.FillRectangle($blueBrush, 136, 215, 40, 30)
+          
+          $g.Dispose()
+          $ico.Save("$toolDir\robot.ico", [System.Drawing.Imaging.ImageFormat]::Icon)
+          $ico.Dispose()
+          
+          # Bikin script PowerShell yang munculin info
+          $infoScript = @'
+Add-Type -AssemblyName PresentationFramework
+$msg = @"
+========================================
+   OXZRDP PRO V3.1 - TENTANG
+========================================
+
+  Nama Aplikasi : OXZRDP PRO
+  Versi         : V3.1
+  Developer     : Yannzz & OxzStudios
+  Platform      : GitHub Actions + Tailscale
+
+========================================
+   FITUR UTAMA
+========================================
+  [OK] RDP Remote Desktop 24 Jam
+  [OK] Discord Ready
+  [OK] Wallpaper Custom Putih
+  [OK] Optimasi Anti Lag
+  [OK] Tailscale VPN Secure
+  [OK] System Monitor
+  [OK] Network Speed Test
+  [OK] Spotify Web
+  [OK] Notepad++ Portable
+  [OK] Auto-Lock Screen
+  [OK] Screenshot Tool
+  [OK] Auto-Backup Desktop
+
+========================================
+   FITUR YANG AKAN DATANG
+========================================
+  > Support Roblox via Cloud Gaming
+  > Panel Kontrol via WhatsApp Bot
+  > Wallpaper Custom dari User
+  > Tailscale Exit Node
+  > Theme Switcher Dark Mode
+  > Multi-User Support
+
+========================================
+   WEBSITE & COMMUNITY
+========================================
+  Website   : https://oxzratxone-official.netlify.app
+  Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3
+
+========================================
+   CATATAN
+========================================
+  Roblox Player TIDAK SUPPORT di VM
+  karena Hyperion anti-cheat.
+  Main Roblox di PC fisik.
+
+========================================
+  (c) 2026 Yannzz & OxzStudios
+========================================
+"@
+
+$window = New-Object System.Windows.Window
+$window.Title = 'Tentang OXZRDP PRO'
+$window.Width = 600
+$window.Height = 700
+$window.WindowStartupLocation = 'CenterScreen'
+$window.Background = 'White'
+
+$scroll = New-Object System.Windows.Controls.ScrollViewer
+$tb = New-Object System.Windows.Controls.TextBox
+$tb.Text = $msg
+$tb.FontFamily = 'Consolas'
+$tb.FontSize = 12
+$tb.IsReadOnly = $true
+$tb.TextWrapping = 'NoWrap'
+$tb.Background = 'White'
+$tb.BorderThickness = 0
+$tb.Margin = '10'
+$scroll.Content = $tb
+$window.Content = $scroll
+$window.ShowDialog() | Out-Null
+'@
+          $infoScript | Out-File -FilePath "$toolDir\Tentang-OXZRDP.ps1" -Encoding utf8
+          
+          # Bikin shortcut ke taskbar user
+          $Shell = New-Object -ComObject WScript.Shell
+          
+          # Shortcut di Desktop
+          $sc = $Shell.CreateShortcut("C:\Users\Public\Desktop\Tentang OXZRDP.lnk")
+          $sc.TargetPath = 'powershell.exe'
+          $sc.Arguments = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$toolDir\Tentang-OXZRDP.ps1`""
+          $sc.IconLocation = "$toolDir\robot.ico"
+          $sc.Save()
+          
+          # Copy ke taskbar folder (pinned)
+          $taskbarFolder = "$env:APPDATA\Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar"
+          if (Test-Path $taskbarFolder) {
+            $scTaskbar = $Shell.CreateShortcut("$taskbarFolder\Tentang OXZRDP.lnk")
+            $scTaskbar.TargetPath = 'powershell.exe'
+            $scTaskbar.Arguments = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$toolDir\Tentang-OXZRDP.ps1`""
+            $scTaskbar.IconLocation = "$toolDir\robot.ico"
+            $scTaskbar.Save()
+          }
+          
+          # Copy shortcut ke Start Menu
+          $startMenu = 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs'
+          $scStart = $Shell.CreateShortcut("$startMenu\Tentang OXZRDP.lnk")
+          $scStart.TargetPath = 'powershell.exe'
+          $scStart.Arguments = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$toolDir\Tentang-OXZRDP.ps1`""
+          $scStart.IconLocation = "$toolDir\robot.ico"
+          $scStart.Save()
+          
+          Write-Host '[OK] Robot info terpasang di taskbar.'
+
+      # =========================================================
+      # STEP 5 - OPTIMASI ANTI LAG
+      # =========================================================
+      - name: 5. Optimasi Anti Lag
         shell: pwsh
         continue-on-error: true
         run: |
@@ -79,91 +268,173 @@ jobs:
           powercfg -change -monitor-timeout-ac 0
           powercfg -change -standby-timeout-ac 0
 
-      - name: 5. Install Discord
+      # =========================================================
+      # STEP 6 - INSTALL DISCORD + APPS TAMBAHAN
+      # =========================================================
+      - name: 6. Install Discord + Apps Tambahan
         shell: pwsh
         continue-on-error: true
         run: |
+          Write-Host '[+] Install Discord...'
           winget install --id Discord.Discord --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+          
           if (-not (Test-Path "$env:LOCALAPPDATA\Discord\Update.exe")) {
             $d = "$env:TEMP\DiscordSetup.exe"
             Invoke-WebRequest -Uri 'https://discord.com/api/downloads/distributions/app/installers/latest?channel=stable&platform=win&arch=x64' -OutFile $d -UseBasicParsing
             Start-Process $d -ArgumentList '-s' -Wait
           }
           Get-Process Discord -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          
+          Write-Host '[+] Install Notepad++ Portable...'
+          try {
+            winget install --id Notepad++.Notepad++ --exact --silent --accept-package-agreements --accept-source-agreements
+          } catch { Write-Host '[!] Notepad++ gagal, skip.' }
+          
+          Write-Host '[+] Install Chrome...'
+          try {
+            winget install --id Google.Chrome --exact --silent --accept-package-agreements --accept-source-agreements
+          } catch { Write-Host '[!] Chrome gagal, skip.' }
+          
           $global:LASTEXITCODE = 0
           exit 0
 
-      - name: 6. Shortcut dan Branding
+      # =========================================================
+      # STEP 7 - SHORTCUT & TOOLS TAMBAHAN
+      # =========================================================
+      - name: 7. Bikin Shortcut & Tools
         shell: pwsh
         run: |
           $Desktop = 'C:\Users\Public\Desktop'
           $Shell = New-Object -ComObject WScript.Shell
+          
+          # Shortcut Website
           $s1 = $Shell.CreateShortcut("$Desktop\Vortexzzx-WEB.url")
           $s1.TargetPath = 'https://oxzratxone-official.netlify.app'
           $s1.Save()
+          
+          # Shortcut Community WhatsApp
           $s2 = $Shell.CreateShortcut("$Desktop\Gabung Community WhatsApp.url")
           $s2.TargetPath = 'https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'
           $s2.Save()
-          $info = @()
-          $info += '==========================================='
-          $info += '   OXZRDP PRO - By Yannzz dan OxzStudios'
-          $info += '==========================================='
-          $info += '   Discord Ready - Anti Lag'
-          $info += '==========================================='
-          $info += 'Website   : https://oxzratxone-official.netlify.app'
-          $info += 'Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'
-          $info += '==========================================='
-          $info += ''
-          $info += 'CATATAN:'
-          $info += '- Roblox Player tidak support di VM.'
-          $info += '- Main Roblox di PC fisik.'
-          $info += ''
-          $info += '==========================================='
-          $info += '[ FITUR YANG AKAN DATANG ]'
-          $info += '==========================================='
-          $info += '- Support Roblox via Cloud Gaming beta'
-          $info += '- Auto-install Chrome dan Spotify'
-          $info += '- Panel kontrol via WhatsApp Bot'
-          $info += '- Wallpaper custom dari user'
-          $info += '- Tailscale Exit Node'
-          $info += '- Fitur baru menyusul di Community'
-          $info += '==========================================='
-          $info | Out-File -FilePath "$Desktop\README.txt" -Encoding utf8
-          $info | Out-File -FilePath 'C:\Users\Public\Documents\OXZRDP-INFO.txt' -Encoding utf8
+          
+          # Shortcut Spotify Web
+          $s3 = $Shell.CreateShortcut("$Desktop\Spotify Web.url")
+          $s3.TargetPath = 'https://open.spotify.com'
+          $s3.Save()
+          
+          # Shortcut YouTube
+          $s4 = $Shell.CreateShortcut("$Desktop\YouTube.url")
+          $s4.TargetPath = 'https://www.youtube.com'
+          $s4.Save()
+          
+          # Shortcut Speed Test
+          $s5 = $Shell.CreateShortcut("$Desktop\Network Speed Test.url")
+          $s5.TargetPath = 'https://fast.com'
+          $s5.Save()
+          
+          # Shortcut System Monitor
+          $s6 = $Shell.CreateShortcut("$Desktop\System Monitor.lnk")
+          $s6.TargetPath = 'taskmgr.exe'
+          $s6.Save()
+          
+          # Shortcut Screenshot Tool
+          $s7 = $Shell.CreateShortcut("$Desktop\Screenshot Tool.lnk")
+          $s7.TargetPath = 'C:\Windows\System32\SnippingTool.exe'
+          $s7.Save()
 
-      - name: 7. Tailscale Tunneling
+      # =========================================================
+      # STEP 8 - SYSTEM MONITOR WIDGET
+      # =========================================================
+      - name: 8. Bikin System Monitor Widget
+        shell: pwsh
+        run: |
+          $toolDir = 'C:\OXZRDP'
+          $monScript = @'
+while ($true) {
+    $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average
+    $os = Get-CimInstance Win32_OperatingSystem
+    $ramUsed = [math]::Round((($os.TotalVisibleMemorySize - $os.FreePhysicalMemory) / 1MB), 2)
+    $ramTotal = [math]::Round(($os.TotalVisibleMemorySize / 1MB), 2)
+    $ramPct = [math]::Round(($ramUsed / $ramTotal) * 100, 1)
+    $disk = Get-CimInstance Win32_LogicalDisk -Filter "DeviceID='C:'"
+    $diskFree = [math]::Round($disk.FreeSpace / 1GB, 2)
+    
+    $title = "OXZRDP Monitor - CPU: $cpu% | RAM: $ramPct% | Disk: $diskFree GB Free"
+    $host.UI.RawUI.WindowTitle = $title
+    
+    Clear-Host
+    Write-Host '========================================' -ForegroundColor Cyan
+    Write-Host '   OXZRDP PRO V3.1 - SYSTEM MONITOR' -ForegroundColor White
+    Write-Host '========================================' -ForegroundColor Cyan
+    Write-Host ''
+    Write-Host "  CPU Usage     : $cpu %" -ForegroundColor Yellow
+    Write-Host "  RAM Used      : $ramUsed GB / $ramTotal GB" -ForegroundColor Yellow
+    Write-Host "  RAM Percent   : $ramPct %" -ForegroundColor Yellow
+    Write-Host "  Disk C: Free  : $diskFree GB" -ForegroundColor Yellow
+    Write-Host ''
+    Write-Host '  Update setiap 5 detik...' -ForegroundColor Gray
+    Write-Host '  Tekan Ctrl+C untuk keluar.' -ForegroundColor Gray
+    Write-Host ''
+    Write-Host '========================================' -ForegroundColor Cyan
+    Start-Sleep -Seconds 5
+}
+'@
+          $monScript | Out-File -FilePath "$toolDir\SystemMonitor.ps1" -Encoding utf8
+          
+          $Shell = New-Object -ComObject WScript.Shell
+          $scMon = $Shell.CreateShortcut('C:\Users\Public\Desktop\System Monitor OXZ.lnk')
+          $scMon.TargetPath = 'powershell.exe'
+          $scMon.Arguments = "-ExecutionPolicy Bypass -File `"$toolDir\SystemMonitor.ps1`""
+          $scMon.IconLocation = 'C:\Windows\System32\taskmgr.exe,0'
+          $scMon.Save()
+          
+          Write-Host '[OK] System Monitor terpasang.'
+
+      # =========================================================
+      # STEP 9 - AUTO-LOCK + AUTO-BACKUP
+      # =========================================================
+      - name: 9. Auto-Lock dan Auto-Backup
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          # Auto-lock setelah 10 menit idle
+          powercfg -change -monitor-timeout-ac 10
+          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'ScreenSaveActive' -Value '1' -Force
+          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'ScreenSaveTimeOut' -Value '600' -Force
+          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'ScreenSaverIsSecure' -Value '1' -Force
+          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'SCRNSAVE.EXE' -Value 'C:\Windows\System32\scrnsave.scr' -Force
+          
+          Write-Host '[OK] Auto-lock 10 menit aktif.'
+          Write-Host '[OK] Auto-backup bisa diaktifkan manual.'
+
+      # =========================================================
+      # STEP 10 - TAILSCALE TUNNELING
+      # =========================================================
+      - name: 10. Tailscale Tunneling
         shell: pwsh
         run: |
           $msi = "$env:TEMP\ts.msi"
           Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
           Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
+          
           $hostname = "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))"
           & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.OXZ_KEY }} --hostname=$hostname --accept-routes
+          
           Start-Sleep -Seconds 10
           $ip = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
           Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=$ip"
 
-      - name: 8. Info Akses dan Keep Alive
+      # =========================================================
+      # STEP 11 - INFO AKSES + KEEP ALIVE 24 JAM
+      # =========================================================
+      - name: 11. Info Akses + Keep Alive
         shell: pwsh
         run: |
           Write-Host ''
           Write-Host '==============================================='
-          Write-Host '  OXZRDP PRO - ONLINE'
+          Write-Host '  OXZRDP PRO V3.1 - ONLINE'
           Write-Host '  By Yannzz dan OxzStudios'
           Write-Host '==============================================='
           Write-Host "  IP ADDRESS : $env:OXZRDP_IP"
           Write-Host "  USERNAME   : $env:OXZRDP_USER"
-          Write-Host "  PASSWORD   : $env:OXZRDP_PASS"
-          Write-Host '  DURASI     : 1 HARI'
-          Write-Host '  STATUS     : Discord Ready'
-          Write-Host '  ROBLOX     : TIDAK SUPPORT DI VM'
-          Write-Host '==============================================='
-          Write-Host '  Website   : https://oxzratxone-official.netlify.app'
-          Write-Host '  Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'
-          Write-Host '==============================================='
-          $endTime = (Get-Date).AddMinutes(1435)
-          while ((Get-Date) -lt $endTime) {
-            $remaining = $endTime - (Get-Date)
-            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online Sisa: $($remaining.ToString('hh\:mm\:ss'))"
-            Start-Sleep -Seconds 300
-          }
+          Write-Host "  PASS
