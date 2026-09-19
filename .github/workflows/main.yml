@@ -1,5 +1,5 @@
 # =============================================================
-# OXZRDP FREE RDP - STEALTH COMMUNITY VERSION (1 HARI)
+# OXZRDP PRO V2 - STEALTH COMMUNITY VERSION (1 HARI)
 # =============================================================
 # INSTRUKSI PENGGUNAAN:
 # 1. Buat Repo baru, simpan file ini di .github/workflows/rdp.yml
@@ -8,7 +8,7 @@
 # 4. Jalankan via tab ACTIONS.
 # =============================================================
 
-name: OXZRDP-FREE-3H
+name: OXZRDP-PRO-1HARI
 on:
   workflow_dispatch:
 
@@ -58,7 +58,7 @@ jobs:
           Start-Process msiexec.exe -ArgumentList "/i", "`"$msi`"", "/quiet", "/norestart" -Wait
           
           # Menggunakan Secret Key masing-masing user
-          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.OXZ_KEY }} --hostname=OXZRDP-FREE-1HARI
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.OXZ_KEY }} --hostname=OXZRDP-PRO-1HARI
           
           $ip = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
           echo "OXZRDP_IP=$ip" >> $env:GITHUB_ENV
@@ -66,7 +66,7 @@ jobs:
       - name: 5. Access Information
         run: |
           Write-Host "`n==============================================="
-          Write-Host " [ OXZRDP FREE RDP - ONLINE ]"
+          Write-Host " [ OXZRDP PRO V2 - ONLINE ]"
           Write-Host "==============================================="
           Write-Host " IP ADDRESS : $env:OXZRDP_IP"
           Write-Host " USERNAME   : $env:OXZRDP_USER"
