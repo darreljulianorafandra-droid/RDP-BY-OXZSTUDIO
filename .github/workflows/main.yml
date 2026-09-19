@@ -19,15 +19,24 @@ jobs:
     timeout-minutes: 1440
 
     steps:
+      # =========================================================
+      # STEP 1 - ENABLE RDP
+      # =========================================================
       - name: 1. Persiapan System (Enable RDP)
+        shell: pwsh
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "SecurityLayer" -Value 0 -Force
           netsh advfirewall firewall set rule group="remote desktop" new enable=Yes
           Restart-Service -Name TermService -Force
+          Write-Host "[OK] RDP diaktifkan."
 
+      # =========================================================
+      # STEP 2 - BIKIN USER RANDOM
+      # =========================================================
       - name: 2. Bikin User Random
+        shell: pwsh
         run: |
           $id = Get-Random -Minimum 1000 -Maximum 9999
           $u = "UserOxz$id"
@@ -43,49 +52,44 @@ jobs:
           
           net user $u $p /add /y
           net localgroup Administrators $u /add
+          Write-Host "[OK] User $u dibuat."
 
+      # =========================================================
+      # STEP 3 - WALLPAPER PUTIH POLOS
+      # =========================================================
       - name: 3. Ganti Wallpaper Jadi Putih Polos
+        shell: pwsh
         run: |
           Write-Host "[+] Bikin wallpaper putih polos..."
           
-          # Bikin gambar putih 1920x1080 pakai .NET
           Add-Type -AssemblyName System.Drawing
           $bmp = New-Object System.Drawing.Bitmap 1920, 1080
           $gfx = [System.Drawing.Graphics]::FromImage($bmp)
           $gfx.Clear([System.Drawing.Color]::White)
           
-          # Tulis teks branding di tengah wallpaper
-          $font = New-Object System.Drawing.Font("Segoe UI", 60, [System.Drawing.FontStyle]::Bold)
-          $brush = [System.Drawing.Brushes]::LightGray
+          $font = New-Object System.Drawing.Font("Segoe UI", 72, [System.Drawing.FontStyle]::Bold)
+          $brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(200, 200, 200))
           $text = "OXZRDP PRO"
           $size = $gfx.MeasureString($text, $font)
-          $gfx.DrawString($text, $font, $brush, (1920 - $size.Width)/2, (1080 - $size.Height)/2 - 60)
+          $gfx.DrawString($text, $font, $brush, (1920 - $size.Width)/2, (1080 - $size.Height)/2 - 80)
           
-          $font2 = New-Object System.Drawing.Font("Segoe UI", 24, [System.Drawing.FontStyle]::Regular)
+          $font2 = New-Object System.Drawing.Font("Segoe UI", 28, [System.Drawing.FontStyle]::Regular)
           $text2 = "By Yannzz & OxzStudios"
           $size2 = $gfx.MeasureString($text2, $font2)
           $gfx.DrawString($text2, $font2, $brush, (1920 - $size2.Width)/2, (1080 - $size2.Height)/2 + 60)
           
           $gfx.Dispose()
           
-          # Simpan wallpaper
           $wallPath = "C:\Windows\Web\Wallpaper\oxzrdp-white.jpg"
           $bmp.Save($wallPath, [System.Drawing.Imaging.ImageFormat]::Jpeg)
           $bmp.Dispose()
           
-          # Set wallpaper untuk semua user (default profile + current)
           $regPath = "HKCU:\Control Panel\Desktop"
           Set-ItemProperty -Path $regPath -Name "Wallpaper" -Value $wallPath -Force
           Set-ItemProperty -Path $regPath -Name "WallpaperStyle" -Value "10" -Force
           Set-ItemProperty -Path $regPath -Name "TileWallpaper" -Value "0" -Force
+          Set-ItemProperty -Path "HKCU:\Control Panel\Colors" -Name "Background" -Value "255 255 255" -Force
           
-          # Set juga di Default User biar user baru otomatis dapat
-          $defaultHive = "C:\Users\Default\NTUSER.DAT"
-          if (Test-Path $defaultHive) {
-            Write-Host "[+] Set wallpaper untuk Default User..."
-          }
-          
-          # Refresh wallpaper
           Add-Type -TypeDefinition @"
           using System;
           using System.Runtime.InteropServices;
@@ -96,16 +100,22 @@ jobs:
           "@
           [Wallpaper]::SystemParametersInfo(20, 0, $wallPath, 3)
           
-          # Bikin juga solid color putih sebagai fallback
-          Set-ItemProperty -Path "HKCU:\Control Panel\Colors" -Name "Background" -Value "255 255 255" -Force
-          
           Write-Host "[OK] Wallpaper putih terpasang!"
 
+      # =========================================================
+      # STEP 4 - OPTIMASI ANTI LAG
+      # =========================================================
       - name: 4. Optimasi Anti Lag
+        shell: pwsh
+        continue-on-error: true
         run: |
           Write-Host "[+] Mulai optimasi..."
 
-          $apps = @("*Microsoft.Office*","*OneDrive*","*SkypeApp*","*XboxApp*","*BingNews*","*BingWeather*","*GetHelp*","*ZuneMusic*","*ZuneVideo*","*People*","*Maps*","*MixedReality.Portal*","*Todos*")
+          $apps = @(
+            "*Microsoft.Office*","*OneDrive*","*SkypeApp*","*XboxApp*",
+            "*BingNews*","*BingWeather*","*GetHelp*","*ZuneMusic*",
+            "*ZuneVideo*","*People*","*Maps*","*MixedReality.Portal*","*Todos*"
+          )
           foreach ($app in $apps) {
             Get-AppxPackage -Name $app -AllUsers -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue
           }
@@ -132,32 +142,50 @@ jobs:
 
           Write-Host "[OK] Optimasi selesai!"
 
-      - name: 5. Install Discord & WhatsApp
+      # =========================================================
+      # STEP 5 - INSTALL DISCORD AJA
+      # =========================================================
+      - name: 5. Install Discord
+        shell: pwsh
+        continue-on-error: true
         run: |
           Write-Host "[+] Install Discord..."
-          winget install --id Discord.Discord --exact --silent --accept-package-agreements --accept-source-agreements
-          if ($LASTEXITCODE -ne 0) {
-            $d = "$env:TEMP\DiscordSetup.exe"
-            Invoke-WebRequest -Uri "https://discord.com/api/downloads/distributions/app/installers/latest?channel=stable&platform=win&arch=x64" -OutFile $d
-            Start-Process $d -ArgumentList "-s" -Wait
+          
+          try {
+            winget install --id Discord.Discord --exact --silent `
+              --accept-package-agreements --accept-source-agreements --disable-interactivity
+          } catch {
+            Write-Host "[!] Winget Discord gagal, coba installer langsung..."
           }
 
-          Write-Host "[+] Install WhatsApp..."
-          winget install --id WhatsApp.WhatsApp -e --silent --accept-package-agreements --accept-source-agreements
-          if ($LASTEXITCODE -ne 0) {
+          # Fallback installer resmi
+          if (-not (Test-Path "$env:LOCALAPPDATA\Discord\Update.exe")) {
             try {
-              $wa = "$env:TEMP\WhatsAppSetup.exe"
-              Invoke-WebRequest -Uri "https://web.whatsapp.com/desktop/windows/release/x64/WhatsAppSetup.exe" -OutFile $wa -UseBasicParsing
-              Start-Process $wa -ArgumentList "/silent" -Wait
+              $d = "$env:TEMP\DiscordSetup.exe"
+              Invoke-WebRequest -Uri "https://discord.com/api/downloads/distributions/app/installers/latest?channel=stable&platform=win&arch=x64" -OutFile $d -UseBasicParsing -TimeoutSec 60
+              Start-Process $d -ArgumentList "-s" -Wait
+              Write-Host "[OK] Discord via installer resmi."
             } catch {
-              Write-Host "[!] WhatsApp installer gagal download, skip."
+              Write-Host "[!] Discord gagal total, skip."
             }
+          } else {
+            Write-Host "[OK] Discord terinstall."
           }
+
+          # Kill orphan process
+          Get-Process Discord -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 
           Write-Host "[!] CATATAN: Roblox Player TIDAK BISA diinstall di VM (Hyperion anti-cheat)."
           Write-Host "[!] Kalau mau main Roblox, pakai PC fisik."
 
+          $global:LASTEXITCODE = 0
+          exit 0
+
+      # =========================================================
+      # STEP 6 - SHORTCUT & BRANDING
+      # =========================================================
       - name: 6. Bikin Shortcut & Branding
+        shell: pwsh
         run: |
           $Desktop = "C:\Users\Public\Desktop"
           $Shell = New-Object -ComObject WScript.Shell
@@ -172,41 +200,45 @@ jobs:
           $ShortcutWA.TargetPath = "https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3"
           $ShortcutWA.Save()
 
-          # README di Desktop
+          # File Info
           $banner = @"
-          ===========================================
-             OXZRDP PRO - By Yannzz & OxzStudios
-          ===========================================
-             Discord + WhatsApp Ready | Anti Lag
-          ===========================================
-          Website   : https://oxzratxone-official.netlify.app
-          Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3
-          ===========================================
+===========================================
+   OXZRDP PRO - By Yannzz & OxzStudios
+===========================================
+   Discord Ready | Anti Lag
+===========================================
+Website   : https://oxzratxone-official.netlify.app
+Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3
+===========================================
 
-          CATATAN:
-          - Roblox Player tidak support di VM (Hyperion anti-cheat).
-          - Main Roblox di PC fisik lu sendiri.
+CATATAN:
+- Roblox Player tidak support di VM (Hyperion anti-cheat).
+- Main Roblox di PC fisik lu sendiri.
 
-          ===========================================
-          [ FITUR YANG AKAN DATANG ]
-          ===========================================
-          - Support Roblox via Cloud Gaming (beta)
-          - Auto-install Chrome + Spotify
-          - Panel kontrol via WhatsApp Bot
-          - Wallpaper custom dari user
-          - Tailscale Exit Node (bypass region)
-          - Fitur baru menyusul di Community!
+===========================================
+[ FITUR YANG AKAN DATANG ]
+===========================================
+- Support Roblox via Cloud Gaming (beta)
+- Auto-install Chrome + Spotify
+- Panel kontrol via WhatsApp Bot
+- Wallpaper custom dari user
+- Tailscale Exit Node (bypass region)
+- Fitur baru menyusul di Community!
 
-          Join Community untuk update terbaru:
-          https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3
-          ===========================================
-          "@
+Join Community untuk update terbaru:
+https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3
+===========================================
+"@
           $banner | Out-File -FilePath "$Desktop\README.txt" -Encoding utf8
-          
-          # Bikin file notepad yang auto-open
           $banner | Out-File -FilePath "C:\Users\Public\Documents\OXZRDP-INFO.txt" -Encoding utf8
+          
+          Write-Host "[OK] Shortcut & branding selesai."
 
+      # =========================================================
+      # STEP 7 - TAILSCALE TUNNELING
+      # =========================================================
       - name: 7. Tailscale Tunneling
+        shell: pwsh
         run: |
           $msi = "$env:TEMP\ts.msi"
           Invoke-WebRequest -Uri "https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi" -OutFile $msi
@@ -218,8 +250,13 @@ jobs:
           Start-Sleep -Seconds 10
           $ip = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
           echo "OXZRDP_IP=$ip" >> $env:GITHUB_ENV
+          Write-Host "[OK] Tailscale terhubung. IP: $ip"
 
+      # =========================================================
+      # STEP 8 - INFO AKSES + KEEP ALIVE 24 JAM
+      # =========================================================
       - name: 8. Info Akses + Fitur Akan Datang
+        shell: pwsh
         run: |
           Write-Host ""
           Write-Host "==============================================="
@@ -230,7 +267,7 @@ jobs:
           Write-Host "  USERNAME   : $env:OXZRDP_USER"
           Write-Host "  PASSWORD   : $env:OXZRDP_PASS"
           Write-Host "  DURASI     : 1 HARI (24 JAM)"
-          Write-Host "  STATUS     : Discord + WhatsApp Ready"
+          Write-Host "  STATUS     : Discord Ready"
           Write-Host "  WALLPAPER  : Putih Polos (OXZRDP PRO)"
           Write-Host "  ROBLOX     : TIDAK SUPPORT (VM detected)"
           Write-Host "==============================================="
@@ -258,7 +295,6 @@ jobs:
           Write-Host "==============================================="
           Write-Host ""
 
-          # Keep alive 24 jam (1435 menit)
           $endTime = (Get-Date).AddMinutes(1435)
           while ((Get-Date) -lt $endTime) {
             $remaining = $endTime - (Get-Date)
