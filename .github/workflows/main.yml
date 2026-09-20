@@ -369,7 +369,7 @@ jobs:
           Write-Host "==============================================="
           Write-Host " [ OXZRDP PRO V4.1 - ONLINE ]"
           Write-Host "==============================================="
-          Write-Host " IP ADDRESS : $ip"
+          Write-Host " IP ADDRESS : $env:OXZRDP_IP"
           Write-Host " USERNAME   : $env:OXZRDP_USER"
           Write-Host " PASSWORD   : $env:OXZRDP_PASS"
           Write-Host " DURASI     : 1 HARI (STEALTH)"
