@@ -366,31 +366,68 @@ jobs:
           
           Write-Host '[OK] Bug Reporter + Changelog + Shortcut terpasang'
 
-      # ============ STEP 11 - TAILSCALE + INFO + KEEP ALIVE ============
-      - name: 11. Tailscale + Info Akses + Keep Alive
-        shell: pwsh
-        run: |
-          $authkey = '${{ secrets.OXZ_KEY }}'
-          if ([string]::IsNullOrWhiteSpace($authkey)) {
-            Write-Host '[ERROR] Secret OXZ_KEY KOSONG!'
-            Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=SECRET-KOSONG"
+# ============ STEP 11 - TAILSCALE + INFO + KEEP ALIVE ============
+- name: 11. Tailscale + Info Akses + Keep Alive
+  shell: pwsh
+  env:
+    TS_AUTHKEY: ${{ secrets.OXZ_KEY }}
+  run: |
+    if ([string]::IsNullOrWhiteSpace($env:TS_AUTHKEY)) {
+      Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=NO-KEY"
+    } else {
+      try {
+        $msi = "$env:TEMP\ts.msi"
+        Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
+        Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
+        Start-Sleep -Seconds 5
+        
+        $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
+        if (Test-Path $tsExe) {
+          $hostname = "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))"
+          & $tsExe up --authkey=$env:TS_AUTHKEY --hostname=$hostname --accept-routes 2>&1 | Write-Host
+          
+          $ip = $null
+          for ($i = 1; $i -le 24; $i++) {
+            Start-Sleep -Seconds 5
+            $ipCheck = & $tsExe ip -4 2>$null
+            if (-not [string]::IsNullOrWhiteSpace($ipCheck)) {
+              $ip = $ipCheck
+              break
+            }
+          }
+          
+          if ([string]::IsNullOrWhiteSpace($ip)) {
+            Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=TAILSCALE-GAGAL"
           } else {
-            try {
-              $msi = "$env:TEMP\ts.msi"
-              Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
-              Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
-              Start-Sleep -Seconds 5
-              
-              $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
-              if (Test-Path $tsExe) {
-                $hostname = "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))"
-                & $tsExe up --authkey=$authkey --hostname=$hostname --accept-routes 2>&1 | Write-Host
-                
-                $ip = $null
-                for ($i = 1; $i -le 24; $i++) {
-                  Start-Sleep -Seconds 5
-                  $ipCheck = & $tsExe ip -4 2>$null
-                  if (-not [string]::IsNullOrWhiteSpace($ipCheck)) {
+            Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=$ip"
+          }
+        }
+      } catch {
+        Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=ERROR"
+      }
+    }
+    
+    Write-Host ""
+    Write-Host "==============================================="
+    Write-Host " [ OXZRDP PRO V4.2 - ONLINE ]"
+    Write-Host "==============================================="
+    Write-Host " IP ADDRESS : $env:OXZRDP_IP"
+    Write-Host " USERNAME   : $env:OXZRDP_USER"
+    Write-Host " PASSWORD   : $env:OXZRDP_PASS"
+    Write-Host " DURASI     : 1 HARI"
+    Write-Host " VERSI      : V4.2"
+    Write-Host "==============================================="
+    Write-Host " BUG REPORT : +62 851-6157-1110"
+    Write-Host " Website    : https://oxzratxone-official.netlify.app"
+    Write-Host " Community  : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3"
+    Write-Host "==============================================="
+    
+    $endTime = (Get-Date).AddMinutes(1435)
+    while ((Get-Date) -lt $endTime) {
+      $remaining = $endTime - (Get-Date)
+      Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $env:OXZRDP_IP | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
+      Start-Sleep -Seconds 300
+    }
                     $ip = $ipCheck
                     break
                   }
