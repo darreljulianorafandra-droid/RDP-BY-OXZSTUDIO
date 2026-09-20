@@ -1,4 +1,4 @@
-name: OXZRDP-PRO-V3.2
+name: OXZRDP-PRO-V3.1
 
 on:
   workflow_dispatch:
@@ -9,21 +9,16 @@ jobs:
     timeout-minutes: 1440
 
     steps:
-      - name: 1. Enable RDP + Rename Device
+      - name: 1. Enable RDP
         shell: pwsh
-        continue-on-error: true
         run: |
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0 -Force
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'UserAuthentication' -Value 0 -Force
           netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
-          Restart-Service -Name TermService -Force -ErrorAction SilentlyContinue
-          $newName = "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))"
-          Rename-Computer -NewName $newName -Force -ErrorAction SilentlyContinue
-          Write-Host "[OK] Device renamed to: $newName"
+          Restart-Service -Name TermService -Force
 
-      - name: 2. Bikin User + Enable Windows Update
+      - name: 2. Bikin User Random
         shell: pwsh
-        continue-on-error: true
         run: |
           $id = Get-Random -Minimum 1000 -Maximum 9999
           $u = "UserOxz$id"
@@ -36,84 +31,82 @@ jobs:
           Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_PASS=$p"
           net user $u $p /add /y
           net localgroup Administrators $u /add
-          net localgroup 'Remote Desktop Users' $u /add
-          Set-Service -Name wuauserv -StartupType Automatic -ErrorAction SilentlyContinue
-          Set-Service -Name UsoSvc -StartupType Automatic -ErrorAction SilentlyContinue
-          Set-Service -Name BITS -StartupType Automatic -ErrorAction SilentlyContinue
-          Start-Service -Name wuauserv -ErrorAction SilentlyContinue
-          Start-Service -Name UsoSvc -ErrorAction SilentlyContinue
-          Start-Service -Name BITS -ErrorAction SilentlyContinue
           Write-Host "[OK] User $u dibuat."
 
-      - name: 3. Wallpaper dari URL
+      - name: 3. Wallpaper Putih Polos
         shell: pwsh
-        continue-on-error: true
         run: |
-          $wallPath = 'C:\Windows\Web\Wallpaper\oxzrdp.jpg'
-          $wallUrl = 'https://files.catbox.moe/yfz3h8.jpg'
-          $ok = $false
-          try {
-            Invoke-WebRequest -Uri $wallUrl -OutFile $wallPath -UseBasicParsing -TimeoutSec 60
-            if ((Get-Item $wallPath).Length -gt 10000) { $ok = $true }
-          } catch {
-            Write-Host "[!] Gagal download: $($_.Exception.Message)"
-          }
-          if (-not $ok) {
-            Add-Type -AssemblyName System.Drawing
-            $bmp = New-Object System.Drawing.Bitmap 1920, 1080
-            $gfx = [System.Drawing.Graphics]::FromImage($bmp)
-            $gfx.Clear([System.Drawing.Color]::White)
-            $gfx.Dispose()
-            $bmp.Save($wallPath, [System.Drawing.Imaging.ImageFormat]::Jpeg)
-            $bmp.Dispose()
-            Write-Host "[!] Pakai fallback putih."
-          } else {
-            Write-Host "[OK] Wallpaper dari URL terpasang."
-          }
+          Add-Type -AssemblyName System.Drawing
+          $bmp = New-Object System.Drawing.Bitmap 1920, 1080
+          $gfx = [System.Drawing.Graphics]::FromImage($bmp)
+          $gfx.Clear([System.Drawing.Color]::White)
+          $font = New-Object System.Drawing.Font('Segoe UI', 72, [System.Drawing.FontStyle]::Bold)
+          $brush = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(200, 200, 200))
+          $text = 'OXZRDP PRO V3.1'
+          $size = $gfx.MeasureString($text, $font)
+          $gfx.DrawString($text, $font, $brush, (1920 - $size.Width) / 2, (1080 - $size.Height) / 2 - 80)
+          $font2 = New-Object System.Drawing.Font('Segoe UI', 28, [System.Drawing.FontStyle]::Regular)
+          $text2 = 'By Yannzz and OxzStudios'
+          $size2 = $gfx.MeasureString($text2, $font2)
+          $gfx.DrawString($text2, $font2, $brush, (1920 - $size2.Width) / 2, (1080 - $size2.Height) / 2 + 60)
+          $gfx.Dispose()
+          $wallPath = 'C:\Windows\Web\Wallpaper\oxzrdp-white.jpg'
+          $bmp.Save($wallPath, [System.Drawing.Imaging.ImageFormat]::Jpeg)
+          $bmp.Dispose()
           Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'Wallpaper' -Value $wallPath -Force
           Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'WallpaperStyle' -Value '10' -Force
           Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'TileWallpaper' -Value '0' -Force
+          Write-Host '[OK] Wallpaper putih terpasang.'
 
-      - name: 4. Robot Info
+      - name: 4. Bikin Robot Info
         shell: pwsh
         continue-on-error: true
         run: |
           $toolDir = 'C:\OXZRDP'
           New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
+
+          # Bikin ikon robot PNG
           Add-Type -AssemblyName System.Drawing
-          $ico = New-Object System.Drawing.Bitmap 256, 256
-          $g = [System.Drawing.Graphics]::FromImage($ico)
+          $bmp = New-Object System.Drawing.Bitmap 256, 256
+          $g = [System.Drawing.Graphics]::FromImage($bmp)
           $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
           $g.Clear([System.Drawing.Color]::White)
           $blue = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(50, 120, 220))
           $white = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::White)
           $black = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::Black)
+          # Badan
           $g.FillRectangle($blue, 60, 90, 136, 120)
+          # Kepala
           $g.FillRectangle($blue, 80, 40, 96, 60)
+          # Mata
           $g.FillEllipse($white, 100, 60, 20, 20)
           $g.FillEllipse($white, 136, 60, 20, 20)
           $g.FillEllipse($black, 108, 66, 10, 10)
           $g.FillEllipse($black, 144, 66, 10, 10)
+          # Mulut
           $g.FillRectangle($black, 110, 82, 36, 6)
+          # Antena
           $pen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(50, 120, 220)), 4
           $g.DrawLine($pen, 128, 40, 128, 15)
           $g.FillEllipse($blue, 120, 5, 16, 16)
+          # Tangan
           $g.FillRectangle($blue, 30, 110, 25, 80)
           $g.FillRectangle($blue, 201, 110, 25, 80)
+          # Kaki
           $g.FillRectangle($blue, 80, 215, 40, 30)
           $g.FillRectangle($blue, 136, 215, 40, 30)
           $g.Dispose()
           $pngPath = "$toolDir\robot.png"
-          $ico.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png)
-          $ico.Dispose()
-          
-          $infoPath = "$toolDir\Tentang-OXZRDP.ps1"
+          $bmp.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png)
+          $bmp.Dispose()
+
+          # Bikin script Tentang OXZRDP
           $lines = @()
           $lines += 'Add-Type -AssemblyName PresentationFramework'
-          $lines += '$msg = "========================================`n   OXZRDP PRO V3.2 - TENTANG`n========================================`n`n  Versi     : V3.2`n  Developer : Yannzz dan OxzStudios`n  Platform  : GitHub Actions + Tailscale`n`n========================================`n   FITUR AKTIF`n========================================`n  - RDP Remote Desktop 24 Jam`n  - Discord, Chrome, Spotify, VLC`n  - System Monitor, Benchmark`n  - Dark Mode Toggle`n  - Auto-Lock 10 Menit`n  - Auto-Backup Desktop`n  - Wallpaper dari URL`n  - Windows Update Aktif`n  - Device Rename Otomatis`n`n========================================`n   WEBSITE dan COMMUNITY`n========================================`n  Website   : https://oxzratxone-official.netlify.app`n  Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3`n`n========================================`n  (c) 2026 Yannzz dan OxzStudios`n========================================"'
+          $lines += '$msg = "========================================`n   OXZRDP PRO V3.1 - TENTANG`n========================================`n`n  Nama Aplikasi : OXZRDP PRO`n  Versi         : V3.1`n  Developer     : Yannzz dan OxzStudios`n  Platform      : GitHub Actions + Tailscale`n`n========================================`n   FITUR UTAMA`n========================================`n  - RDP Remote Desktop 24 Jam`n  - Discord Ready`n  - Wallpaper Custom Putih`n  - Optimasi Anti Lag`n  - Tailscale VPN Secure`n  - System Monitor`n  - Network Speed Test`n  - Spotify Web`n  - Notepad++ Portable`n  - Auto-Lock Screen`n  - Screenshot Tool`n  - Auto-Backup Desktop`n`n========================================`n   FITUR YANG AKAN DATANG`n========================================`n  - Support Roblox via Cloud Gaming`n  - Panel Kontrol via WhatsApp Bot`n  - Wallpaper Custom dari User`n  - Tailscale Exit Node`n  - Theme Switcher Dark Mode`n  - Multi-User Support`n`n========================================`n   WEBSITE dan COMMUNITY`n========================================`n  Website   : https://oxzratxone-official.netlify.app`n  Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3`n`n========================================`n   CATATAN`n========================================`n  Roblox Player TIDAK SUPPORT di VM`n  karena Hyperion anti-cheat.`n  Main Roblox di PC fisik.`n`n========================================`n  (c) 2026 Yannzz dan OxzStudios`n========================================"'
           $lines += '$window = New-Object System.Windows.Window'
-          $lines += '$window.Title = "Tentang OXZRDP PRO V3.2"'
-          $lines += '$window.Width = 620'
+          $lines += '$window.Title = "Tentang OXZRDP PRO"'
+          $lines += '$window.Width = 600'
           $lines += '$window.Height = 700'
           $lines += '$window.WindowStartupLocation = "CenterScreen"'
           $lines += '$window.Background = "White"'
@@ -129,15 +122,25 @@ jobs:
           $lines += '$scroll.Content = $tb'
           $lines += '$window.Content = $scroll'
           $lines += '$window.ShowDialog() | Out-Null'
-          $lines -join "`n" | Out-File -FilePath $infoPath -Encoding utf8
-          
+          $lines -join "`n" | Out-File -FilePath "$toolDir\Tentang-OXZRDP.ps1" -Encoding utf8
+
+          # Bikin shortcut
           $Shell = New-Object -ComObject WScript.Shell
           $sc = $Shell.CreateShortcut('C:\Users\Public\Desktop\Tentang OXZRDP.lnk')
           $sc.TargetPath = 'powershell.exe'
-          $sc.Arguments = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$infoPath`""
+          $sc.Arguments = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$toolDir\Tentang-OXZRDP.ps1`""
           $sc.IconLocation = "$pngPath,0"
           $sc.Save()
-          Write-Host '[OK] Robot Info terpasang.'
+
+          # Start Menu
+          $startMenu = 'C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Tentang OXZRDP.lnk'
+          $sc2 = $Shell.CreateShortcut($startMenu)
+          $sc2.TargetPath = 'powershell.exe'
+          $sc2.Arguments = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$toolDir\Tentang-OXZRDP.ps1`""
+          $sc2.IconLocation = "$pngPath,0"
+          $sc2.Save()
+
+          Write-Host '[OK] Robot Info terpasang di Desktop dan Start Menu.'
 
       - name: 5. Optimasi Anti Lag
         shell: pwsh
@@ -147,7 +150,7 @@ jobs:
           foreach ($app in $apps) {
             Get-AppxPackage -Name $app -AllUsers -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue
           }
-          $services = @('DiagTrack','dmwappushservice','SysMain','MapsBroker','RetailDemo','WMPNetworkSvc')
+          $services = @('DiagTrack','dmwappushservice','SysMain','WSearch','MapsBroker','RetailDemo','WMPNetworkSvc')
           foreach ($svc in $services) {
             Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue
             Set-Service -Name $svc -StartupType Disabled -ErrorAction SilentlyContinue
@@ -155,156 +158,110 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile' -Name 'NetworkThrottlingIndex' -Value 0xffffffff -Force -ErrorAction SilentlyContinue
           netsh int tcp set global autotuninglevel=normal
           powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>$null
-          Write-Host '[OK] Optimasi selesai.'
 
-      - name: 6. Install Apps
+      - name: 6. Install Discord dan Apps
         shell: pwsh
         continue-on-error: true
         run: |
-          $apps = @(
-            @{id='Discord.Discord'; name='Discord'},
-            @{id='Google.Chrome'; name='Chrome'},
-            @{id='Spotify.Spotify'; name='Spotify'},
-            @{id='VideoLAN.VLC'; name='VLC'},
-            @{id='Notepad++.Notepad++'; name='Notepad++'}
-          )
-          foreach ($app in $apps) {
-            Write-Host "[+] Install $($app.name)..."
-            try {
-              winget install --id $($app.id) --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-            } catch { }
+          winget install --id Discord.Discord --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+          if (-not (Test-Path "$env:LOCALAPPDATA\Discord\Update.exe")) {
+            $d = "$env:TEMP\DiscordSetup.exe"
+            Invoke-WebRequest -Uri 'https://discord.com/api/downloads/distributions/app/installers/latest?channel=stable&platform=win&arch=x64' -OutFile $d -UseBasicParsing
+            Start-Process $d -ArgumentList '-s' -Wait
           }
           Get-Process Discord -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           $global:LASTEXITCODE = 0
           exit 0
 
-      - name: 7. Tools + Shortcut
+      - name: 7. Shortcut Desktop
+        shell: pwsh
+        run: |
+          $Desktop = 'C:\Users\Public\Desktop'
+          $Shell = New-Object -ComObject WScript.Shell
+          $list = @(
+            @{n='Vortexzzx-WEB.url'; t='https://oxzratxone-official.netlify.app'},
+            @{n='Community WhatsApp.url'; t='https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'},
+            @{n='Spotify Web.url'; t='https://open.spotify.com'},
+            @{n='YouTube.url'; t='https://www.youtube.com'},
+            @{n='Speed Test.url'; t='https://fast.com'}
+          )
+          foreach ($item in $list) {
+            $sc = $Shell.CreateShortcut("$Desktop\$($item.n)")
+            $sc.TargetPath = $item.t
+            $sc.Save()
+          }
+          $scMon = $Shell.CreateShortcut("$Desktop\Task Manager.lnk")
+          $scMon.TargetPath = 'taskmgr.exe'
+          $scMon.Save()
+          Write-Host '[OK] Shortcut dibuat.'
+
+      - name: 8. System Monitor
         shell: pwsh
         continue-on-error: true
         run: |
           $toolDir = 'C:\OXZRDP'
           New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
-          $Shell = New-Object -ComObject WScript.Shell
-          
-          # System Monitor
           $lines = @()
           $lines += 'while ($true) {'
           $lines += '  $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average'
           $lines += '  $os = Get-CimInstance Win32_OperatingSystem'
           $lines += '  $ramUsed = [math]::Round((($os.TotalVisibleMemorySize - $os.FreePhysicalMemory) / 1MB), 2)'
           $lines += '  $ramTotal = [math]::Round(($os.TotalVisibleMemorySize / 1MB), 2)'
+          $lines += '  $ramPct = [math]::Round(($ramUsed / $ramTotal) * 100, 1)'
           $lines += '  Clear-Host'
-          $lines += '  Write-Host "=== OXZRDP SYSTEM MONITOR ===" -ForegroundColor Cyan'
-          $lines += '  Write-Host "CPU: $cpu %" -ForegroundColor Yellow'
-          $lines += '  Write-Host "RAM: $ramUsed GB / $ramTotal GB" -ForegroundColor Yellow'
+          $lines += '  Write-Host "========================================" -ForegroundColor Cyan'
+          $lines += '  Write-Host "   OXZRDP PRO V3.1 - SYSTEM MONITOR" -ForegroundColor White'
+          $lines += '  Write-Host "========================================" -ForegroundColor Cyan'
+          $lines += '  Write-Host ""'
+          $lines += '  Write-Host "  CPU Usage  : $cpu %" -ForegroundColor Yellow'
+          $lines += '  Write-Host "  RAM Used   : $ramUsed GB / $ramTotal GB" -ForegroundColor Yellow'
+          $lines += '  Write-Host "  RAM Percent: $ramPct %" -ForegroundColor Yellow'
+          $lines += '  Write-Host ""'
+          $lines += '  Write-Host "  Update tiap 5 detik. Ctrl+C untuk keluar." -ForegroundColor Gray'
           $lines += '  Start-Sleep -Seconds 5'
           $lines += '}'
           $lines -join "`n" | Out-File -FilePath "$toolDir\SystemMonitor.ps1" -Encoding utf8
+          $Shell = New-Object -ComObject WScript.Shell
           $sc = $Shell.CreateShortcut('C:\Users\Public\Desktop\System Monitor.lnk')
           $sc.TargetPath = 'powershell.exe'
           $sc.Arguments = "-ExecutionPolicy Bypass -File `"$toolDir\SystemMonitor.ps1`""
+          $sc.IconLocation = 'C:\Windows\System32\taskmgr.exe,0'
           $sc.Save()
-          
-          # Benchmark
-          $lines2 = @()
-          $lines2 += 'Write-Host "===== OXZRDP BENCHMARK =====" -ForegroundColor Cyan'
-          $lines2 += '$cpu = (Get-CimInstance Win32_Processor).Name'
-          $lines2 += '$ram = [math]::Round(((Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize / 1MB), 2)'
-          $lines2 += 'Write-Host "CPU: $cpu"'
-          $lines2 += 'Write-Host "RAM: $ram GB"'
-          $lines2 += '$sw = [System.Diagnostics.Stopwatch]::StartNew()'
-          $lines2 += 'for ($i = 0; $i -lt 1000000; $i++) { $x = $i * 2 }'
-          $lines2 += '$sw.Stop()'
-          $lines2 += 'Write-Host "CPU Score: $($sw.ElapsedMilliseconds) ms"'
-          $lines2 += 'Read-Host "Enter untuk keluar"'
-          $lines2 -join "`n" | Out-File -FilePath "$toolDir\Benchmark.ps1" -Encoding utf8
-          $sc2 = $Shell.CreateShortcut('C:\Users\Public\Desktop\Benchmark.lnk')
-          $sc2.TargetPath = 'powershell.exe'
-          $sc2.Arguments = "-ExecutionPolicy Bypass -NoExit -File `"$toolDir\Benchmark.ps1`""
-          $sc2.Save()
-          
-          # Dark Mode
-          $lines3 = @()
-          $lines3 += '$cur = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -ErrorAction SilentlyContinue'
-          $lines3 += 'if ($cur.AppsUseLightTheme -eq 1) { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -Value 0 -Force } else { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -Value 1 -Force }'
-          $lines3 -join "`n" | Out-File -FilePath "$toolDir\DarkModeToggle.ps1" -Encoding utf8
-          $sc3 = $Shell.CreateShortcut('C:\Users\Public\Desktop\Dark Mode Toggle.lnk')
-          $sc3.TargetPath = 'powershell.exe'
-          $sc3.Arguments = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$toolDir\DarkModeToggle.ps1`""
-          $sc3.Save()
-          
-          # Auto-Lock
-          powercfg -change -monitor-timeout-ac 10
-          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'ScreenSaveActive' -Value '1' -Force
-          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'ScreenSaveTimeOut' -Value '600' -Force
-          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'ScreenSaverIsSecure' -Value '1' -Force
-          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'SCRNSAVE.EXE' -Value 'C:\Windows\System32\scrnsave.scr' -Force
-          
-          # Shortcut
-          $Desktop = 'C:\Users\Public\Desktop'
-          $list = @(
-            @{n='Vortexzzx-WEB.url'; t='https://oxzratxone-official.netlify.app'},
-            @{n='Community WhatsApp.url'; t='https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'},
-            @{n='Spotify Web.url'; t='https://open.spotify.com'},
-            @{n='YouTube.url'; t='https://www.youtube.com'},
-            @{n='Speed Test.url'; t='https://fast.com'},
-            @{n='Windows Update.url'; t='ms-settings:windowsupdate'}
-          )
-          foreach ($item in $list) {
-            $s = $Shell.CreateShortcut("$Desktop\$($item.n)")
-            $s.TargetPath = $item.t
-            $s.Save()
-          }
-          $scMon = $Shell.CreateShortcut("$Desktop\Task Manager.lnk")
-          $scMon.TargetPath = 'taskmgr.exe'
-          $scMon.Save()
-          Write-Host '[OK] Tools + shortcut terpasang.'
+          Write-Host '[OK] System Monitor terpasang.'
 
-      - name: 8. Tailscale + Info Akses + Keep Alive
+      - name: 9. Tailscale Tunneling
         shell: pwsh
         run: |
-          $ip = 'TAILSCALE-GAGAL'
-          try {
-            Write-Host '[+] Setup Tailscale...'
-            $msi = "$env:TEMP\ts.msi"
-            Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
-            Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
-            
-            $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
-            if (Test-Path $tsExe) {
-              $hostname = "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))"
-              & $tsExe up --authkey=${{ secrets.OXZ_KEY }} --hostname=$hostname --accept-routes 2>&1 | Write-Host
-              
-              for ($i = 1; $i -le 12; $i++) {
-                Start-Sleep -Seconds 5
-                $ipCheck = & $tsExe ip -4 2>$null
-                if (-not [string]::IsNullOrWhiteSpace($ipCheck)) {
-                  $ip = $ipCheck
-                  break
-                }
-                Write-Host "[...] Nunggu IP ($i/12)..."
-              }
-            }
-          } catch {
-            Write-Host "[!] Tailscale error: $($_.Exception.Message)"
-          }
-          
-          Write-Host "`n==============================================="
-          Write-Host " [ OXZRDP PRO RDP - ONLINE ]"
-          Write-Host "==============================================="
-          Write-Host " IP ADDRESS : $ip"
-          Write-Host " USERNAME   : $env:OXZRDP_USER"
-          Write-Host " PASSWORD   : $env:OXZRDP_PASS"
-          Write-Host " DURASI     : 1 HARI (STEALTH)"
-          Write-Host " VERSI      : V3.2"
-          Write-Host "==============================================="
-          Write-Host " Website: https://oxzratxone-official.netlify.app"
-          Write-Host " Community: https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3"
-          Write-Host "==============================================="
-          
+          $msi = "$env:TEMP\ts.msi"
+          Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
+          Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
+          $hostname = "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))"
+          & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.OXZ_KEY }} --hostname=$hostname --accept-routes
+          Start-Sleep -Seconds 10
+          $ip = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
+          Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=$ip"
+
+      - name: 10. Info Akses dan Keep Alive
+        shell: pwsh
+        run: |
+          Write-Host ''
+          Write-Host '==============================================='
+          Write-Host '  OXZRDP PRO V3.1 - ONLINE'
+          Write-Host '  By Yannzz dan OxzStudios'
+          Write-Host '==============================================='
+          Write-Host "  IP ADDRESS : $env:OXZRDP_IP"
+          Write-Host "  USERNAME   : $env:OXZRDP_USER"
+          Write-Host "  PASSWORD   : $env:OXZRDP_PASS"
+          Write-Host '  DURASI     : 1 HARI'
+          Write-Host '  VERSI      : V3.1'
+          Write-Host '==============================================='
+          Write-Host '  Website   : https://oxzratxone-official.netlify.app'
+          Write-Host '  Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'
+          Write-Host '==============================================='
+          Write-Host ''
           $endTime = (Get-Date).AddMinutes(1435)
           while ((Get-Date) -lt $endTime) {
             $remaining = $endTime - (Get-Date)
-            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $ip | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
+            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online Sisa: $($remaining.ToString('hh\:mm\:ss'))"
             Start-Sleep -Seconds 300
           }
