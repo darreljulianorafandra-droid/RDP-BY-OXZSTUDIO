@@ -366,9 +366,9 @@ jobs:
           
           Write-Host '[OK] Bug Reporter + Changelog + Shortcut terpasang'
 
-# ============ STEP 11 - TAILSCALE + INFO + KEEP ALIVE ============
-- name: 11. Tailscale + Info Akses + Keep Alive
-  shell: pwsh
+    # ============ STEP 11 - TAILSCALE + INFO + KEEP ALIVE ============== #
+     name: 11. Tailscale + Info Akses + Keep Alive
+   shell: pwsh
   env:
     TS_AUTHKEY: ${{ secrets.OXZ_KEY }}
   run: |
@@ -428,47 +428,3 @@ jobs:
       Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $env:OXZRDP_IP | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
       Start-Sleep -Seconds 300
     }
-                    $ip = $ipCheck
-                    break
-                  }
-                }
-                
-                if ([string]::IsNullOrWhiteSpace($ip)) {
-                  Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=TAILSCALE-GAGAL"
-                } else {
-                  Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=$ip"
-                }
-              }
-            } catch {
-              Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=ERROR"
-            }
-          }
-          
-          Write-Host ""
-          Write-Host "==============================================="
-          Write-Host " [ OXZRDP PRO V4.2 - ONLINE ]"
-          Write-Host "==============================================="
-          Write-Host " IP ADDRESS : $env:OXZRDP_IP"
-          Write-Host " USERNAME   : $env:OXZRDP_USER"
-          Write-Host " PASSWORD   : $env:OXZRDP_PASS"
-          Write-Host " DURASI     : 1 HARI (STEALTH)"
-          Write-Host " VERSI      : V4.2"
-          Write-Host "==============================================="
-          Write-Host " FITUR V4.2:"
-          Write-Host " - Steam, LibreOffice"
-          Write-Host " - WiFi Manager, Bug Reporter"
-          Write-Host " - Discord, Chrome, Spotify, VLC, WhatsApp"
-          Write-Host " - OBS, Zoom, GIMP, 7-Zip, CPU-Z"
-          Write-Host " - CCleaner, Bitwarden, Audacity, Tor"
-          Write-Host "==============================================="
-          Write-Host " BUG REPORT : +62 851-6157-1110"
-          Write-Host " Website    : https://oxzratxone-official.netlify.app"
-          Write-Host " Community  : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3"
-          Write-Host "==============================================="
-          
-          $endTime = (Get-Date).AddMinutes(1435)
-          while ((Get-Date) -lt $endTime) {
-            $remaining = $endTime - (Get-Date)
-            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $env:OXZRDP_IP | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
-            Start-Sleep -Seconds 300
-          }
