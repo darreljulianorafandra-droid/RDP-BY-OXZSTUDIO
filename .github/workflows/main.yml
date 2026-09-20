@@ -18,9 +18,8 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'UserAuthentication' -Value 0 -Force
           netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
           Restart-Service -Name TermService -Force -ErrorAction SilentlyContinue
-          $newName = "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))"
-          Rename-Computer -NewName $newName -Force -ErrorAction SilentlyContinue
-          Write-Host "[OK] Device: $newName"
+          Rename-Computer -NewName "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))" -Force -ErrorAction SilentlyContinue
+          Write-Host '[OK] RDP aktif'
 
       # ============ STEP 2 - USER + WINDOWS UPDATE ============
       - name: 2. Bikin User + Windows Update
@@ -93,7 +92,7 @@ jobs:
           Write-Host '[OK] Optimasi selesai'
 
       # ============ STEP 5 - APPS UTAMA ============
-      - name: 5. Install Apps Utama (Discord + Chrome + Spotify + VLC + Notepad++ + WhatsApp)
+      - name: 5. Install Discord + Chrome + Spotify + VLC + Notepad++ + WhatsApp
         shell: pwsh
         continue-on-error: true
         run: |
@@ -136,7 +135,7 @@ jobs:
           exit 0
 
       # ============ STEP 7 - MULTIMEDIA + UTILITY ============
-      - name: 7. Install OBS + Zoom + GIMP + 7-Zip + Bitwarden + Audacity + Tor + CCleaner
+      - name: 7. Install OBS + Zoom + GIMP + Bitwarden + Audacity + Tor + CCleaner
         shell: pwsh
         continue-on-error: true
         run: |
@@ -196,7 +195,7 @@ jobs:
           $infoPath = "$toolDir\Tentang-OXZRDP.ps1"
           $lines = @()
           $lines += 'Add-Type -AssemblyName PresentationFramework'
-          $lines += '$msg = "========================================`n   OXZRDP PRO V4.2 - TENTANG`n========================================`n`n  Versi     : V4.2`n  Developer : Yannzz dan OxzStudios`n  Platform  : GitHub Actions + Tailscale`n`n========================================`n   FITUR AKTIF V4.2`n========================================`n  - Steam Client`n  - LibreOffice (Word alternative)`n  - WiFi Manager`n  - Bug Reporter WhatsApp`n  - Discord, Chrome, Spotify, VLC`n  - WhatsApp Desktop, Notepad++`n  - OBS Studio, Zoom, GIMP`n  - 7-Zip, CPU-Z, CCleaner`n  - Bitwarden, Audacity, Tor Browser`n  - Theme Market (4 tema)`n  - Play Store + APK Downloader`n  - System Monitor, Benchmark`n  - Wallpaper dari URL`n`n========================================`n   BUG REPORT`n========================================`n  WhatsApp : +62 851-6157-1110`n  Chat     : https://wa.me/6285161571110`n`n========================================`n   WEBSITE dan COMMUNITY`n========================================`n  Website   : https://oxzratxone-official.netlify.app`n  Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3`n`n========================================`n  (c) 2026 Yannzz dan OxzStudios`n========================================"'
+          $lines += '$msg = "========================================`n   OXZRDP PRO V4.2 - TENTANG`n========================================`n`n  Versi     : V4.2`n  Developer : Yannzz dan OxzStudios`n  Platform  : GitHub Actions + Tailscale`n`n========================================`n   FITUR AKTIF V4.2`n========================================`n  - Steam Client`n  - LibreOffice`n  - WiFi Manager`n  - Bug Reporter WhatsApp`n  - Discord, Chrome, Spotify, VLC`n  - WhatsApp, Notepad++`n  - OBS, Zoom, GIMP`n  - 7-Zip, CPU-Z, CCleaner`n  - Bitwarden, Audacity, Tor`n  - Theme Market`n  - Play Store + APK Downloader`n`n========================================`n   BUG REPORT`n========================================`n  WhatsApp : +62 851-6157-1110`n`n========================================`n   WEBSITE dan COMMUNITY`n========================================`n  Website   : https://oxzratxone-official.netlify.app`n  Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3`n`n========================================`n  (c) 2026 Yannzz dan OxzStudios`n========================================"'
           $lines += '$window = New-Object System.Windows.Window'
           $lines += '$window.Title = "Tentang OXZRDP PRO V4.2"'
           $lines += '$window.Width = 650'
@@ -233,7 +232,6 @@ jobs:
           $toolDir = 'C:\OXZRDP'
           New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
           
-          # Bikin script WiFi info (text-based, gak pakai GUI)
           $wifiPath = "$toolDir\WiFiInfo.ps1"
           $lines = @()
           $lines += 'Write-Host "===== OXZRDP V4.2 - WIFI INFO =====" -ForegroundColor Cyan'
@@ -268,7 +266,6 @@ jobs:
           $Desktop = 'C:\Users\Public\Desktop'
           $Shell = New-Object -ComObject WScript.Shell
           
-          # Shortcut URL
           $list = @(
             @{n='Steam.url'; t='https://store.steampowered.com'},
             @{n='Play Store.url'; t='https://play.google.com/store'},
@@ -286,7 +283,6 @@ jobs:
             $s.Save()
           }
           
-          # Bug Reporter
           $scBug = $Shell.CreateShortcut("$Desktop\Lapor Bug WhatsApp.lnk")
           $scBug.TargetPath = 'https://wa.me/6285161571110?text=Halo%20saya%20mau%20lapor%20bug%20OXZRDP%20V4.2'
           $scBug.Save()
@@ -306,7 +302,6 @@ jobs:
           $bugInfo += 'Screenshot: [attach]'
           $bugInfo | Out-File -FilePath "$Desktop\BUG-REPORTER.txt" -Encoding utf8
           
-          # Changelog
           $cl = @()
           $cl += '==============================================='
           $cl += '   OXZRDP PRO - CHANGELOG'
@@ -347,84 +342,73 @@ jobs:
           $cl += '[+] Optimasi anti lag'
           $cl += ''
           $cl += '==============================================='
-          $cl += 'FITUR YANG AKAN DATANG V4.3'
-          $cl += '==============================================='
-          $cl += '[*] QR Code Connect'
-          $cl += '[*] Auto Screen Record'
-          $cl += '[*] Bot Telegram'
-          $cl += '[*] NoVNC Web Client'
-          $cl += '[*] Live Dashboard'
-          $cl += '[*] AI Assistant'
-          $cl += ''
-          $cl += '==============================================='
           $cl += 'Website   : https://oxzratxone-official.netlify.app'
           $cl += 'Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'
           $cl += 'Bug Report: +62 851-6157-1110'
           $cl += '==============================================='
           $cl | Out-File -FilePath "$Desktop\CHANGELOG.txt" -Encoding utf8
           $cl | Out-File -FilePath 'C:\Users\Public\Documents\OXZRDP-CHANGELOG.txt' -Encoding utf8
-          
           Write-Host '[OK] Bug Reporter + Changelog + Shortcut terpasang'
 
-    # ============ STEP 11 - TAILSCALE + INFO + KEEP ALIVE ============== #
-     name: 11. Tailscale + Info Akses + Keep Alive
-   shell: pwsh
-  env:
-    TS_AUTHKEY: ${{ secrets.OXZ_KEY }}
-  run: |
-    if ([string]::IsNullOrWhiteSpace($env:TS_AUTHKEY)) {
-      Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=NO-KEY"
-    } else {
-      try {
-        $msi = "$env:TEMP\ts.msi"
-        Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
-        Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
-        Start-Sleep -Seconds 5
-        
-        $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
-        if (Test-Path $tsExe) {
-          $hostname = "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))"
-          & $tsExe up --authkey=$env:TS_AUTHKEY --hostname=$hostname --accept-routes 2>&1 | Write-Host
-          
-          $ip = $null
-          for ($i = 1; $i -le 24; $i++) {
-            Start-Sleep -Seconds 5
-            $ipCheck = & $tsExe ip -4 2>$null
-            if (-not [string]::IsNullOrWhiteSpace($ipCheck)) {
-              $ip = $ipCheck
-              break
+      # ============ STEP 11 - TAILSCALE + INFO + KEEP ALIVE ============
+      - name: 11. Tailscale + Info Akses + Keep Alive
+        shell: pwsh
+        env:
+          TS_AUTHKEY: ${{ secrets.OXZ_KEY }}
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TS_AUTHKEY)) {
+            Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=NO-KEY"
+          } else {
+            try {
+              $msi = "$env:TEMP\ts.msi"
+              Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
+              Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
+              Start-Sleep -Seconds 5
+              
+              $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
+              if (Test-Path $tsExe) {
+                $hostname = "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))"
+                & $tsExe up --authkey=$env:TS_AUTHKEY --hostname=$hostname --accept-routes 2>&1 | Write-Host
+                
+                $ip = $null
+                for ($i = 1; $i -le 24; $i++) {
+                  Start-Sleep -Seconds 5
+                  $ipCheck = & $tsExe ip -4 2>$null
+                  if (-not [string]::IsNullOrWhiteSpace($ipCheck)) {
+                    $ip = $ipCheck
+                    break
+                  }
+                }
+                
+                if ([string]::IsNullOrWhiteSpace($ip)) {
+                  Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=TAILSCALE-GAGAL"
+                } else {
+                  Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=$ip"
+                }
+              }
+            } catch {
+              Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=ERROR"
             }
           }
           
-          if ([string]::IsNullOrWhiteSpace($ip)) {
-            Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=TAILSCALE-GAGAL"
-          } else {
-            Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=$ip"
+          Write-Host ""
+          Write-Host "==============================================="
+          Write-Host " [ OXZRDP PRO V4.2 - ONLINE ]"
+          Write-Host "==============================================="
+          Write-Host " IP ADDRESS : $env:OXZRDP_IP"
+          Write-Host " USERNAME   : $env:OXZRDP_USER"
+          Write-Host " PASSWORD   : $env:OXZRDP_PASS"
+          Write-Host " DURASI     : 1 HARI"
+          Write-Host " VERSI      : V4.2"
+          Write-Host "==============================================="
+          Write-Host " BUG REPORT : +62 851-6157-1110"
+          Write-Host " Website    : https://oxzratxone-official.netlify.app"
+          Write-Host " Community  : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3"
+          Write-Host "==============================================="
+          
+          $endTime = (Get-Date).AddMinutes(1435)
+          while ((Get-Date) -lt $endTime) {
+            $remaining = $endTime - (Get-Date)
+            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $env:OXZRDP_IP | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
+            Start-Sleep -Seconds 300
           }
-        }
-      } catch {
-        Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=ERROR"
-      }
-    }
-    
-    Write-Host ""
-    Write-Host "==============================================="
-    Write-Host " [ OXZRDP PRO V4.2 - ONLINE ]"
-    Write-Host "==============================================="
-    Write-Host " IP ADDRESS : $env:OXZRDP_IP"
-    Write-Host " USERNAME   : $env:OXZRDP_USER"
-    Write-Host " PASSWORD   : $env:OXZRDP_PASS"
-    Write-Host " DURASI     : 1 HARI"
-    Write-Host " VERSI      : V4.2"
-    Write-Host "==============================================="
-    Write-Host " BUG REPORT : +62 851-6157-1110"
-    Write-Host " Website    : https://oxzratxone-official.netlify.app"
-    Write-Host " Community  : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3"
-    Write-Host "==============================================="
-    
-    $endTime = (Get-Date).AddMinutes(1435)
-    while ((Get-Date) -lt $endTime) {
-      $remaining = $endTime - (Get-Date)
-      Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $env:OXZRDP_IP | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
-      Start-Sleep -Seconds 300
-    }
