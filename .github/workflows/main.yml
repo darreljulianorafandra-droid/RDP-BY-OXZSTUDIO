@@ -1,4 +1,4 @@
-name: OXZRDP-PRO-V4.1
+name: OXZRDP-PRO-V4.2
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ jobs:
     timeout-minutes: 1440
 
     steps:
-      # ============ STEP 1 - ENABLE RDP + RENAME ============
+      # ============ STEP 1 - RDP + RENAME ============
       - name: 1. Enable RDP + Rename Device
         shell: pwsh
         continue-on-error: true
@@ -48,7 +48,6 @@ jobs:
         shell: pwsh
         continue-on-error: true
         run: |
-          # Wallpaper utama
           $wallPath = 'C:\Windows\Web\Wallpaper\oxzrdp.jpg'
           try {
             Invoke-WebRequest -Uri 'https://files.catbox.moe/yfz3h8.jpg' -OutFile $wallPath -UseBasicParsing -TimeoutSec 60
@@ -60,7 +59,6 @@ jobs:
             Write-Host '[!] Wallpaper gagal'
           }
           
-          # Theme Market - download 4 tema
           $themeDir = 'C:\OXZRDP\Themes'
           New-Item -ItemType Directory -Path $themeDir -Force | Out-Null
           $themes = @(
@@ -76,8 +74,323 @@ jobs:
             } catch { }
           }
 
-      # ============ STEP 4 - ROBOT INFO ============
-      - name: 4. Robot Info Desktop
+      # ============ STEP 4 - OPTIMASI ============
+      - name: 4. Optimasi Anti Lag
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $apps = @('*Microsoft.Office*','*OneDrive*','*SkypeApp*','*XboxApp*','*BingNews*','*BingWeather*','*GetHelp*','*ZuneMusic*','*ZuneVideo*','*People*','*Maps*','*Todos*')
+          foreach ($app in $apps) {
+            Get-AppxPackage -Name $app -AllUsers -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue
+          }
+          $services = @('DiagTrack','dmwappushservice','SysMain','MapsBroker','RetailDemo','WMPNetworkSvc')
+          foreach ($svc in $services) {
+            Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue
+            Set-Service -Name $svc -StartupType Disabled -ErrorAction SilentlyContinue
+          }
+          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile' -Name 'NetworkThrottlingIndex' -Value 0xffffffff -Force -ErrorAction SilentlyContinue
+          netsh int tcp set global autotuninglevel=normal
+          powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>$null
+          Write-Host '[OK] Optimasi selesai'
+
+      # ============ STEP 5 - INSTALL APPS UTAMA ============
+      - name: 5. Install Apps Utama (Discord + Chrome + Spotify + VLC + Notepad++ + WhatsApp)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $apps = @(
+            @{id='Discord.Discord'; name='Discord'},
+            @{id='Google.Chrome'; name='Chrome'},
+            @{id='Spotify.Spotify'; name='Spotify'},
+            @{id='VideoLAN.VLC'; name='VLC'},
+            @{id='Notepad++.Notepad++'; name='Notepad++'},
+            @{id='WhatsApp.WhatsApp'; name='WhatsApp'}
+          )
+          foreach ($app in $apps) {
+            Write-Host "[+] Install $($app.name)..."
+            try {
+              winget install --id $($app.id) --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+            } catch { }
+          }
+          Get-Process Discord -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+          $global:LASTEXITCODE = 0
+          exit 0
+
+      # ============ STEP 6 - INSTALL APPS TAMBAHAN V4.2 ============
+      - name: 6. Install Apps V4.2 (Steam + Office + OBS + Zoom + GIMP + 7-Zip + dll)
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $apps = @(
+            @{id='Valve.Steam'; name='Steam'},
+            @{id='OBSProject.OBSStudio'; name='OBS Studio'},
+            @{id='Zoom.Zoom'; name='Zoom'},
+            @{id='GIMP.GIMP'; name='GIMP'},
+            @{id='7zip.7zip'; name='7-Zip'},
+            @{id='CPUID.CPU-Z'; name='CPU-Z'},
+            @{id='Piriform.CCleaner'; name='CCleaner'},
+            @{id='Bitwarden.Bitwarden'; name='Bitwarden'},
+            @{id='Audacity.Audacity'; name='Audacity'},
+            @{id='TorProject.TorBrowser'; name='Tor Browser'},
+            @{id='TheDocumentFoundation.LibreOffice'; name='LibreOffice'}
+          )
+          foreach ($app in $apps) {
+            Write-Host "[+] Install $($app.name)..."
+            try {
+              winget install --id $($app.id) --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+            } catch {
+              Write-Host "[!] $($app.name) gagal, skip."
+            }
+          }
+          $global:LASTEXITCODE = 0
+          exit 0
+
+      # ============ STEP 7 - WIFI MANAGER + NETWORK TOOLS ============
+      - name: 7. WiFi Manager + Network Tools
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $toolDir = 'C:\OXZRDP'
+          New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
+          
+          # Script WiFi Manager
+          $wifiScript = @'
+Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+
+$form = New-Object System.Windows.Forms.Form
+$form.Text = 'OXZRDP V4.2 - WiFi Manager'
+$form.Size = New-Object System.Drawing.Size(700, 600)
+$form.StartPosition = 'CenterScreen'
+$form.BackColor = [System.Drawing.Color]::White
+
+$lbl = New-Object System.Windows.Forms.Label
+$lbl.Text = 'WIFI MANAGER - OXZRDP V4.2'
+$lbl.Font = New-Object System.Drawing.Font('Segoe UI', 16, [System.Drawing.FontStyle]::Bold)
+$lbl.Location = New-Object System.Drawing.Point(20, 20)
+$lbl.Size = New-Object System.Drawing.Size(500, 30)
+$form.Controls.Add($lbl)
+
+$listBox = New-Object System.Windows.Forms.ListBox
+$listBox.Location = New-Object System.Drawing.Point(20, 60)
+$listBox.Size = New-Object System.Drawing.Size(640, 350)
+$listBox.Font = New-Object System.Drawing.Font('Consolas', 10)
+
+# Scan WiFi networks
+$wifiInfo = netsh wlan show networks mode=bssid 2>$null
+if ($wifiInfo) {
+    foreach ($line in $wifiInfo) {
+        if ($line -match '^SSID') {
+            [void]$listBox.Items.Add($line.Trim())
+        }
+    }
+} else {
+    [void]$listBox.Items.Add('WiFi adapter tidak terdeteksi di VM (normal).')
+    [void]$listBox.Items.Add('')
+    [void]$listBox.Items.Add('Info Network VM:')
+    $ipconfig = ipconfig 2>$null
+    foreach ($line in $ipconfig) {
+        if ($line.Trim() -ne '') {
+            [void]$listBox.Items.Add($line)
+        }
+    }
+}
+$form.Controls.Add($listBox)
+
+$btnScan = New-Object System.Windows.Forms.Button
+$btnScan.Text = 'Scan Ulang'
+$btnScan.Location = New-Object System.Drawing.Point(20, 430)
+$btnScan.Size = New-Object System.Drawing.Size(150, 40)
+$btnScan.BackColor = [System.Drawing.Color]::FromArgb(50, 120, 220)
+$btnScan.ForeColor = [System.Drawing.Color]::White
+$btnScan.Font = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
+$btnScan.Add_Click({
+    $listBox.Items.Clear()
+    $wifi = netsh wlan show networks mode=bssid 2>$null
+    if ($wifi) {
+        foreach ($line in $wifi) {
+            if ($line -match '^SSID') { [void]$listBox.Items.Add($line.Trim()) }
+        }
+    }
+    $listBox.Items.Add('')
+    $listBox.Items.Add('--- IP Config ---')
+    $ipconfig = ipconfig 2>$null
+    foreach ($line in $ipconfig) {
+        if ($line.Trim() -ne '') { [void]$listBox.Items.Add($line) }
+    }
+})
+$form.Controls.Add($btnScan)
+
+$btnSpeed = New-Object System.Windows.Forms.Button
+$btnSpeed.Text = 'Speed Test'
+$btnSpeed.Location = New-Object System.Drawing.Point(180, 430)
+$btnSpeed.Size = New-Object System.Drawing.Size(150, 40)
+$btnSpeed.BackColor = [System.Drawing.Color]::FromArgb(60, 200, 100)
+$btnSpeed.ForeColor = [System.Drawing.Color]::White
+$btnSpeed.Font = New-Object System.Drawing.Font('Segoe UI', 11, [System.Drawing.FontStyle]::Bold)
+$btnSpeed.Add_Click({
+    Start-Process 'https://fast.com'
+})
+$form.Controls.Add($btnSpeed)
+
+$btnClose = New-Object System.Windows.Forms.Button
+$btnClose.Text = 'Tutup'
+$btnClose.Location = New-Object System.Drawing.Point(340, 430)
+$btnClose.Size = New-Object System.Drawing.Size(150, 40)
+$btnClose.Font = New-Object System.Drawing.Font('Segoe UI', 11)
+$btnClose.Add_Click({ $form.Close() })
+$form.Controls.Add($btnClose)
+
+$form.ShowDialog() | Out-Null
+'@
+          $wifiScript | Out-File -FilePath "$toolDir\WiFiManager.ps1" -Encoding utf8
+          
+          $Shell = New-Object -ComObject WScript.Shell
+          $sc = $Shell.CreateShortcut('C:\Users\Public\Desktop\WiFi Manager.lnk')
+          $sc.TargetPath = 'powershell.exe'
+          $sc.Arguments = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$toolDir\WiFiManager.ps1`""
+          $sc.IconLocation = 'C:\Windows\System32\shell32.dll,17'
+          $sc.Save()
+          
+          Write-Host '[OK] WiFi Manager terpasang'
+
+      # ============ STEP 8 - BUG REPORTER + CHANGELOG + SHORTCUT ============
+      - name: 8. Bug Reporter + Changelog + Shortcut
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $Desktop = 'C:\Users\Public\Desktop'
+          $Shell = New-Object -ComObject WScript.Shell
+          
+          # Bug Reporter - WhatsApp
+          $bugReport = @()
+          $bugReport += '==============================================='
+          $bugReport += '   OXZRDP V4.2 - BUG REPORTER'
+          $bugReport += '   By Yannzz dan OxzStudios'
+          $bugReport += '==============================================='
+          $bugReport += ''
+          $bugReport += 'KALAU NEMU BUG / ERROR:'
+          $bugReport += '-----------------------------------------------'
+          $bugReport += '1. Screenshot error-nya'
+          $bugReport += '2. Catat step berapa yang error'
+          $bugReport += '3. Kirim ke WhatsApp:'
+          $bugReport += ''
+          $bugReport += '   WhatsApp : +62 851-6157-1110'
+          $bugReport += '   Chat     : https://wa.me/6285161571110'
+          $bugReport += ''
+          $bugReport += '-----------------------------------------------'
+          $bugReport += 'FORMAT LAPORAN BUG:'
+          $bugReport += '-----------------------------------------------'
+          $bugReport += 'Nama      : [nama lu]'
+          $bugReport += 'Versi     : V4.2'
+          $bugReport += 'Step      : [step berapa]'
+          $bugReport += 'Error     : [copy paste error]'
+          $bugReport += 'Screenshot: [attach]'
+          $bugReport += ''
+          $bugReport += '==============================================='
+          $bugReport += 'Website   : https://oxzratxone-official.netlify.app'
+          $bugReport += 'Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'
+          $bugReport += '==============================================='
+          $bugReport | Out-File -FilePath "$Desktop\BUG-REPORTER.txt" -Encoding utf8
+          
+          # Shortcut WhatsApp Bug Report
+          $scBug = $Shell.CreateShortcut("$Desktop\Lapor Bug WhatsApp.lnk")
+          $scBug.TargetPath = 'https://wa.me/6285161571110?text=Halo%20Yannzz%2C%20saya%20mau%20lapor%20bug%20OXZRDP%20V4.2'
+          $scBug.IconLocation = 'C:\Windows\System32\shell32.dll,13'
+          $scBug.Save()
+          
+          # Shortcut URL lain
+          $list = @(
+            @{n='Steam.url'; t='https://store.steampowered.com'},
+            @{n='Play Store.url'; t='https://play.google.com/store'},
+            @{n='APK Downloader.url'; t='https://apkpure.com'},
+            @{n='Vortexzzx-WEB.url'; t='https://oxzratxone-official.netlify.app'},
+            @{n='Community WhatsApp.url'; t='https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'},
+            @{n='Spotify Web.url'; t='https://open.spotify.com'},
+            @{n='YouTube.url'; t='https://www.youtube.com'},
+            @{n='Speed Test.url'; t='https://fast.com'},
+            @{n='Windows Update.url'; t='ms-settings:windowsupdate'}
+          )
+          foreach ($item in $list) {
+            $s = $Shell.CreateShortcut("$Desktop\$($item.n)")
+            $s.TargetPath = $item.t
+            $s.Save()
+          }
+          
+          $scMon = $Shell.CreateShortcut("$Desktop\Task Manager.lnk")
+          $scMon.TargetPath = 'taskmgr.exe'
+          $scMon.Save()
+          
+          # === CHANGELOG ===
+          $cl = @()
+          $cl += '==============================================='
+          $cl += '   OXZRDP PRO - CHANGELOG'
+          $cl += '   By Yannzz dan OxzStudios'
+          $cl += '==============================================='
+          $cl += ''
+          $cl += 'V4.2 (Sekarang) - RELEASE'
+          $cl += '==============================================='
+          $cl += '[+] Steam Client'
+          $cl += '[+] Microsoft Word (LibreOffice alternative)'
+          $cl += '[+] WiFi Manager + Network Tools'
+          $cl += '[+] Bug Reporter (WhatsApp +6285161571110)'
+          $cl += '[+] OBS Studio (recording + streaming)'
+          $cl += '[+] Zoom (video conference)'
+          $cl += '[+] GIMP (photo editor)'
+          $cl += '[+] 7-Zip (file compressor)'
+          $cl += '[+] CPU-Z (hardware info)'
+          $cl += '[+] CCleaner (pembersih)'
+          $cl += '[+] Bitwarden (password manager)'
+          $cl += '[+] Audacity (audio editor)'
+          $cl += '[+] Tor Browser (anonim browsing)'
+          $cl += ''
+          $cl += 'V4.1 - STABLE'
+          $cl += '==============================================='
+          $cl += '[+] Play Store shortcut'
+          $cl += '[+] APK Downloader'
+          $cl += '[+] Theme Market (4 tema)'
+          $cl += '[+] Changelog'
+          $cl += '[+] WhatsApp Desktop'
+          $cl += ''
+          $cl += 'V3.2 - STABLE'
+          $cl += '==============================================='
+          $cl += '[+] Wallpaper dari URL'
+          $cl += '[+] Windows Update aktif'
+          $cl += '[+] Rename device otomatis'
+          $cl += '[+] Robot Info Desktop'
+          $cl += '[+] Discord, Chrome, Spotify, VLC, Notepad++'
+          $cl += '[+] System Monitor, Benchmark, Dark Mode'
+          $cl += '[+] Auto-Lock 10 menit'
+          $cl += ''
+          $cl += 'V3.1 - STABLE'
+          $cl += '==============================================='
+          $cl += '[+] Robot Info taskbar'
+          $cl += '[+] Wallpaper putih polos'
+          $cl += '[+] Optimasi anti lag'
+          $cl += ''
+          $cl += '==============================================='
+          $cl += 'FITUR YANG AKAN DATANG V4.3'
+          $cl += '==============================================='
+          $cl += '[*] QR Code Connect'
+          $cl += '[*] Auto Screen Record'
+          $cl += '[*] Bot Telegram'
+          $cl += '[*] NoVNC Web Client'
+          $cl += '[*] Live Dashboard'
+          $cl += '[*] Multi-Region Support'
+          $cl += '[*] AI Assistant'
+          $cl += ''
+          $cl += '==============================================='
+          $cl += 'Website   : https://oxzratxone-official.netlify.app'
+          $cl += 'Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'
+          $cl += 'Bug Report: +62 851-6157-1110'
+          $cl += '==============================================='
+          $cl | Out-File -FilePath "$Desktop\CHANGELOG.txt" -Encoding utf8
+          $cl | Out-File -FilePath 'C:\Users\Public\Documents\OXZRDP-CHANGELOG.txt' -Encoding utf8
+          
+          Write-Host '[OK] Bug Reporter + Changelog + Shortcut terpasang'
+
+      # ============ STEP 9 - ROBOT INFO ============
+      - name: 9. Robot Info Desktop
         shell: pwsh
         continue-on-error: true
         run: |
@@ -111,15 +424,14 @@ jobs:
           $ico.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png)
           $ico.Dispose()
           
-          # Info script - pakai array biar aman
           $infoPath = "$toolDir\Tentang-OXZRDP.ps1"
           $lines = @()
           $lines += 'Add-Type -AssemblyName PresentationFramework'
-          $lines += '$msg = "========================================`n   OXZRDP PRO V4.1 - TENTANG`n========================================`n`n  Versi     : V4.1`n  Developer : Yannzz dan OxzStudios`n  Platform  : GitHub Actions + Tailscale`n`n========================================`n   FITUR AKTIF V4.1`n========================================`n  - Play Store Helper`n  - Theme Market (4 tema)`n  - Changelog`n  - RDP Remote Desktop 24 Jam`n  - Discord, Chrome, Spotify, VLC`n  - WhatsApp Desktop, Notepad++`n  - System Monitor, Benchmark`n  - Dark Mode Toggle`n  - Auto-Lock + Auto-Backup`n  - Wallpaper dari URL`n  - Windows Update Aktif`n  - Device Rename Otomatis`n`n========================================`n   WEBSITE dan COMMUNITY`n========================================`n  Website   : https://oxzratxone-official.netlify.app`n  Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3`n`n========================================`n  (c) 2026 Yannzz dan OxzStudios`n========================================"'
+          $lines += '$msg = "========================================`n   OXZRDP PRO V4.2 - TENTANG`n========================================`n`n  Versi     : V4.2`n  Developer : Yannzz dan OxzStudios`n  Platform  : GitHub Actions + Tailscale`n`n========================================`n   FITUR AKTIF V4.2`n========================================`n  - Steam Client`n  - Microsoft Word / LibreOffice`n  - WiFi Manager`n  - Bug Reporter WhatsApp`n  - Discord, Chrome, Spotify, VLC`n  - WhatsApp, Notepad++`n  - OBS Studio, Zoom, GIMP`n  - 7-Zip, CPU-Z, CCleaner`n  - Bitwarden, Audacity, Tor Browser`n  - System Monitor, Benchmark`n  - Dark Mode, Auto-Lock, Auto-Backup`n  - Play Store + APK Downloader`n  - Theme Market`n`n========================================`n   BUG REPORT`n========================================`n  WhatsApp : +62 851-6157-1110`n  Chat     : https://wa.me/6285161571110`n`n========================================`n   WEBSITE dan COMMUNITY`n========================================`n  Website   : https://oxzratxone-official.netlify.app`n  Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3`n`n========================================`n  (c) 2026 Yannzz dan OxzStudios`n========================================"'
           $lines += '$window = New-Object System.Windows.Window'
-          $lines += '$window.Title = "Tentang OXZRDP PRO V4.1"'
+          $lines += '$window.Title = "Tentang OXZRDP PRO V4.2"'
           $lines += '$window.Width = 650'
-          $lines += '$window.Height = 720'
+          $lines += '$window.Height = 750'
           $lines += '$window.WindowStartupLocation = "CenterScreen"'
           $lines += '$window.Background = "White"'
           $lines += '$scroll = New-Object System.Windows.Controls.ScrollViewer'
@@ -144,246 +456,64 @@ jobs:
           $sc.Save()
           Write-Host '[OK] Robot Info terpasang'
 
-      # ============ STEP 5 - OPTIMASI ============
-      - name: 5. Optimasi Anti Lag
+      # ============ STEP 10 - TAILSCALE + INFO + KEEP ALIVE ============
+      - name: 10. Tailscale + Info Akses + Keep Alive
         shell: pwsh
-        continue-on-error: true
         run: |
-          $apps = @('*Microsoft.Office*','*OneDrive*','*SkypeApp*','*XboxApp*','*BingNews*','*BingWeather*','*GetHelp*','*ZuneMusic*','*ZuneVideo*','*People*','*Maps*','*Todos*')
-          foreach ($app in $apps) {
-            Get-AppxPackage -Name $app -AllUsers -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction SilentlyContinue
-          }
-          $services = @('DiagTrack','dmwappushservice','SysMain','MapsBroker','RetailDemo','WMPNetworkSvc')
-          foreach ($svc in $services) {
-            Stop-Service -Name $svc -Force -ErrorAction SilentlyContinue
-            Set-Service -Name $svc -StartupType Disabled -ErrorAction SilentlyContinue
-          }
-          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile' -Name 'NetworkThrottlingIndex' -Value 0xffffffff -Force -ErrorAction SilentlyContinue
-          netsh int tcp set global autotuninglevel=normal
-          powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>$null
-          Write-Host '[OK] Optimasi selesai'
-
-      # ============ STEP 6 - INSTALL APPS ============
-      - name: 6. Install Apps (Discord + Chrome + Spotify + VLC + Notepad++ + WhatsApp)
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          $apps = @(
-            @{id='Discord.Discord'; name='Discord'},
-            @{id='Google.Chrome'; name='Chrome'},
-            @{id='Spotify.Spotify'; name='Spotify'},
-            @{id='VideoLAN.VLC'; name='VLC'},
-            @{id='Notepad++.Notepad++'; name='Notepad++'},
-            @{id='WhatsApp.WhatsApp'; name='WhatsApp'}
-          )
-          foreach ($app in $apps) {
-            Write-Host "[+] Install $($app.name)..."
+          $authkey = '${{ secrets.OXZ_KEY }}'
+          if ([string]::IsNullOrWhiteSpace($authkey)) {
+            Write-Host "[ERROR] Secret OXZ_KEY KOSONG!"
+            Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=SECRET-KOSONG"
+          } else {
             try {
-              winget install --id $($app.id) --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-            } catch { }
-          }
-          Get-Process Discord -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-          $global:LASTEXITCODE = 0
-          exit 0
-
-      # ============ STEP 7 - TOOLS ============
-      - name: 7. System Monitor + Benchmark + Dark Mode + Auto Lock + Auto Backup
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          $toolDir = 'C:\OXZRDP'
-          New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
-          $Shell = New-Object -ComObject WScript.Shell
-          
-          # System Monitor
-          $l1 = @()
-          $l1 += 'while ($true) {'
-          $l1 += '  $cpu = (Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average'
-          $l1 += '  $os = Get-CimInstance Win32_OperatingSystem'
-          $l1 += '  $ramUsed = [math]::Round((($os.TotalVisibleMemorySize - $os.FreePhysicalMemory) / 1MB), 2)'
-          $l1 += '  $ramTotal = [math]::Round(($os.TotalVisibleMemorySize / 1MB), 2)'
-          $l1 += '  Clear-Host'
-          $l1 += '  Write-Host "=== OXZRDP V4.1 SYSTEM MONITOR ===" -ForegroundColor Cyan'
-          $l1 += '  Write-Host "CPU: $cpu %" -ForegroundColor Yellow'
-          $l1 += '  Write-Host "RAM: $ramUsed GB / $ramTotal GB" -ForegroundColor Yellow'
-          $l1 += '  Start-Sleep -Seconds 5'
-          $l1 += '}'
-          $l1 -join "`n" | Out-File -FilePath "$toolDir\SystemMonitor.ps1" -Encoding utf8
-          $sc1 = $Shell.CreateShortcut('C:\Users\Public\Desktop\System Monitor.lnk')
-          $sc1.TargetPath = 'powershell.exe'
-          $sc1.Arguments = "-ExecutionPolicy Bypass -File `"$toolDir\SystemMonitor.ps1`""
-          $sc1.Save()
-          
-          # Benchmark
-          $l2 = @()
-          $l2 += 'Write-Host "===== OXZRDP BENCHMARK =====" -ForegroundColor Cyan'
-          $l2 += '$cpu = (Get-CimInstance Win32_Processor).Name'
-          $l2 += '$ram = [math]::Round(((Get-CimInstance Win32_OperatingSystem).TotalVisibleMemorySize / 1MB), 2)'
-          $l2 += 'Write-Host "CPU: $cpu"'
-          $l2 += 'Write-Host "RAM: $ram GB"'
-          $l2 += '$sw = [System.Diagnostics.Stopwatch]::StartNew()'
-          $l2 += 'for ($i = 0; $i -lt 1000000; $i++) { $x = $i * 2 }'
-          $l2 += '$sw.Stop()'
-          $l2 += 'Write-Host "CPU Score: $($sw.ElapsedMilliseconds) ms"'
-          $l2 += 'Read-Host "Enter untuk keluar"'
-          $l2 -join "`n" | Out-File -FilePath "$toolDir\Benchmark.ps1" -Encoding utf8
-          $sc2 = $Shell.CreateShortcut('C:\Users\Public\Desktop\Benchmark.lnk')
-          $sc2.TargetPath = 'powershell.exe'
-          $sc2.Arguments = "-ExecutionPolicy Bypass -NoExit -File `"$toolDir\Benchmark.ps1`""
-          $sc2.Save()
-          
-          # Dark Mode
-          $l3 = @()
-          $l3 += '$cur = Get-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -ErrorAction SilentlyContinue'
-          $l3 += 'if ($cur.AppsUseLightTheme -eq 1) { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -Value 0 -Force } else { Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name AppsUseLightTheme -Value 1 -Force }'
-          $l3 -join "`n" | Out-File -FilePath "$toolDir\DarkModeToggle.ps1" -Encoding utf8
-          $sc3 = $Shell.CreateShortcut('C:\Users\Public\Desktop\Dark Mode Toggle.lnk')
-          $sc3.TargetPath = 'powershell.exe'
-          $sc3.Arguments = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$toolDir\DarkModeToggle.ps1`""
-          $sc3.Save()
-          
-          # Auto-Lock
-          powercfg -change -monitor-timeout-ac 10
-          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'ScreenSaveActive' -Value '1' -Force
-          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'ScreenSaveTimeOut' -Value '600' -Force
-          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'ScreenSaverIsSecure' -Value '1' -Force
-          Set-ItemProperty -Path 'HKCU:\Control Panel\Desktop' -Name 'SCRNSAVE.EXE' -Value 'C:\Windows\System32\scrnsave.scr' -Force
-          
-          Write-Host '[OK] Tools terpasang'
-
-      # ============ STEP 8 - PLAY STORE + CHANGELOG + SHORTCUT ============
-      - name: 8. Play Store + Changelog + Shortcut
-        shell: pwsh
-        continue-on-error: true
-        run: |
-          $Desktop = 'C:\Users\Public\Desktop'
-          $Shell = New-Object -ComObject WScript.Shell
-          
-          # Shortcut URL
-          $list = @(
-            @{n='Play Store.url'; t='https://play.google.com/store'},
-            @{n='Play Store Helper.url'; t='https://play.google.com/store/apps/details?id=com.microsoft.rdc.androidx'},
-            @{n='APK Downloader.url'; t='https://apkpure.com'},
-            @{n='Vortexzzx-WEB.url'; t='https://oxzratxone-official.netlify.app'},
-            @{n='Community WhatsApp.url'; t='https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'},
-            @{n='Spotify Web.url'; t='https://open.spotify.com'},
-            @{n='YouTube.url'; t='https://www.youtube.com'},
-            @{n='Speed Test.url'; t='https://fast.com'},
-            @{n='Windows Update.url'; t='ms-settings:windowsupdate'}
-          )
-          foreach ($item in $list) {
-            $s = $Shell.CreateShortcut("$Desktop\$($item.n)")
-            $s.TargetPath = $item.t
-            $s.Save()
-          }
-          
-          $scMon = $Shell.CreateShortcut("$Desktop\Task Manager.lnk")
-          $scMon.TargetPath = 'taskmgr.exe'
-          $scMon.Save()
-          
-          # Changelog
-          $cl = @()
-          $cl += '==============================================='
-          $cl += '   OXZRDP PRO - CHANGELOG'
-          $cl += '   By Yannzz dan OxzStudios'
-          $cl += '==============================================='
-          $cl += ''
-          $cl += 'V4.1 - RELEASE'
-          $cl += '==============================================='
-          $cl += '[+] Play Store shortcut'
-          $cl += '[+] APK Downloader shortcut'
-          $cl += '[+] Theme Market (4 tema wallpaper)'
-          $cl += '[+] Changelog file'
-          $cl += '[+] WhatsApp Desktop'
-          $cl += '[+] Fix bug dari V3.2'
-          $cl += ''
-          $cl += 'V3.2 - STABLE'
-          $cl += '==============================================='
-          $cl += '[+] Wallpaper dari URL'
-          $cl += '[+] Windows Update aktif'
-          $cl += '[+] Rename device otomatis'
-          $cl += '[+] Robot Info Desktop'
-          $cl += '[+] Discord, Chrome, Spotify, VLC, Notepad++'
-          $cl += '[+] System Monitor, Benchmark, Dark Mode'
-          $cl += '[+] Auto-Lock 10 menit'
-          $cl += '[+] Firewall Hardening'
-          $cl += ''
-          $cl += 'V3.1 - STABLE'
-          $cl += '==============================================='
-          $cl += '[+] Robot Info taskbar'
-          $cl += '[+] Wallpaper putih polos'
-          $cl += '[+] Optimasi anti lag'
-          $cl += ''
-          $cl += 'V1.0 - AWAL'
-          $cl += '==============================================='
-          $cl += '[+] RDP basic'
-          $cl += '[+] Tailscale tunneling'
-          $cl += ''
-          $cl += '==============================================='
-          $cl += 'FITUR YANG AKAN DATANG V4.2'
-          $cl += '==============================================='
-          $cl += '[*] QR Code Connect'
-          $cl += '[*] Auto Screen Record'
-          $cl += '[*] Bot Telegram'
-          $cl += '[*] NoVNC Web Client'
-          $cl += '[*] Live Dashboard'
-          $cl += ''
-          $cl += '==============================================='
-          $cl += 'Website   : https://oxzratxone-official.netlify.app'
-          $cl += 'Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'
-          $cl += '==============================================='
-          $cl | Out-File -FilePath "$Desktop\CHANGELOG.txt" -Encoding utf8
-          $cl | Out-File -FilePath 'C:\Users\Public\Documents\OXZRDP-CHANGELOG.txt' -Encoding utf8
-          
-          Write-Host '[OK] Play Store + Changelog + Shortcut terpasang'
-
-      # ============ STEP 9 - TAILSCALE + INFO + KEEP ALIVE ============
-      - name: 9. Tailscale + Info Akses + Keep Alive
-        shell: pwsh
-        run: |
-          $ip = 'GAGAL'
-          try {
-            $msi = "$env:TEMP\ts.msi"
-            Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
-            Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
-            
-            $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
-            if (Test-Path $tsExe) {
-              $hostname = "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))"
-              & $tsExe up --authkey=${{ secrets.OXZ_KEY }} --hostname=$hostname --accept-routes
+              $msi = "$env:TEMP\ts.msi"
+              Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
+              Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
+              Start-Sleep -Seconds 5
               
-              for ($i = 1; $i -le 12; $i++) {
-                Start-Sleep -Seconds 5
-                $ipCheck = & $tsExe ip -4 2>$null
-                if (-not [string]::IsNullOrWhiteSpace($ipCheck)) {
-                  $ip = $ipCheck
-                  break
+              $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
+              if (Test-Path $tsExe) {
+                $hostname = "OXZRDP-PRO-$((Get-Random -Min 100 -Max 999))"
+                & $tsExe up --authkey=$authkey --hostname=$hostname --accept-routes 2>&1 | Write-Host
+                
+                $ip = $null
+                for ($i = 1; $i -le 24; $i++) {
+                  Start-Sleep -Seconds 5
+                  $ipCheck = & $tsExe ip -4 2>$null
+                  if (-not [string]::IsNullOrWhiteSpace($ipCheck)) {
+                    $ip = $ipCheck
+                    break
+                  }
+                }
+                
+                if ([string]::IsNullOrWhiteSpace($ip)) {
+                  Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=TAILSCALE-GAGAL"
+                } else {
+                  Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=$ip"
                 }
               }
+            } catch {
+              Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=ERROR"
             }
-          } catch {
-            Write-Host "[!] Error: $($_.Exception.Message)"
           }
           
           Write-Host ""
           Write-Host "==============================================="
-          Write-Host " [ OXZRDP PRO V4.1 - ONLINE ]"
+          Write-Host " [ OXZRDP PRO V4.2 - ONLINE ]"
           Write-Host "==============================================="
           Write-Host " IP ADDRESS : $env:OXZRDP_IP"
           Write-Host " USERNAME   : $env:OXZRDP_USER"
           Write-Host " PASSWORD   : $env:OXZRDP_PASS"
           Write-Host " DURASI     : 1 HARI (STEALTH)"
-          Write-Host " VERSI      : V4.1"
+          Write-Host " VERSI      : V4.2"
           Write-Host "==============================================="
-          Write-Host " FITUR V4.1:"
-          Write-Host " - Play Store + APK Downloader"
-          Write-Host " - Theme Market (4 tema)"
-          Write-Host " - Changelog"
-          Write-Host " - Discord, Chrome, Spotify, VLC"
-          Write-Host " - WhatsApp, Notepad++"
-          Write-Host " - System Monitor, Benchmark"
-          Write-Host " - Dark Mode, Auto-Lock, Auto-Backup"
+          Write-Host " FITUR V4.2:"
+          Write-Host " - Steam, Office/LibreOffice"
+          Write-Host " - WiFi Manager, Bug Reporter"
+          Write-Host " - OBS, Zoom, GIMP, 7-Zip, CPU-Z"
+          Write-Host " - CCleaner, Bitwarden, Audacity, Tor"
           Write-Host "==============================================="
+          Write-Host " BUG REPORT: +62 851-6157-1110"
           Write-Host " Website: https://oxzratxone-official.netlify.app"
           Write-Host " Community: https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3"
           Write-Host "==============================================="
@@ -391,6 +521,6 @@ jobs:
           $endTime = (Get-Date).AddMinutes(1435)
           while ((Get-Date) -lt $endTime) {
             $remaining = $endTime - (Get-Date)
-            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $ip | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
+            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $env:OXZRDP_IP | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
             Start-Sleep -Seconds 300
           }
