@@ -384,7 +384,7 @@ jobs:
           Write-Host " - System Monitor, Benchmark"
           Write-Host " - Dark Mode, Auto-Lock, Auto-Backup"
           Write-Host "==============================================="
-          Write-Host " Website: https://oxzratxone-official.netlify.app"
+          Write-Host " Website: https://oxzchatmessenger.vercel.app"
           Write-Host " Community: https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3"
           Write-Host "==============================================="
           
