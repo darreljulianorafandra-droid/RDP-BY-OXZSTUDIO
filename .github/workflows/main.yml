@@ -294,6 +294,6 @@ jobs:
           $endTime = (Get-Date).AddMinutes(1435)
           while ((Get-Date) -lt $endTime) {
             $remaining = $endTime - (Get-Date)
-            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $env:OXZRDP_IP | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
+            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $ip | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
             Start-Sleep -Seconds 300
           }
