@@ -9,8 +9,8 @@ jobs:
     timeout-minutes: 1440
 
     steps:
-      # ============ STEP 1 - RDP + RENAME PC ============
-      - name: 1. Enable RDP + Rename PC
+      # ============ STEP 1 - RDP ONLY ============
+      - name: 1. Enable RDP
         shell: pwsh
         continue-on-error: true
         run: |
@@ -18,17 +18,12 @@ jobs:
           Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name 'UserAuthentication' -Value 0 -Force
           netsh advfirewall firewall set rule group='remote desktop' new enable=Yes
           Restart-Service -Name TermService -Force -ErrorAction SilentlyContinue
-          
-          $pcName = "OXZRDP-V10-$((Get-Random -Min 100 -Max 999))"
-          Rename-Computer -NewName $pcName -Force -ErrorAction SilentlyContinue
-          
           $os = Get-CimInstance Win32_OperatingSystem
-          Write-Host "[OK] Nama PC: $pcName"
           Write-Host "[INFO] OS: $($os.Caption)"
           Write-Host "[INFO] RAM: $([math]::Round($os.TotalVisibleMemorySize / 1MB, 2)) GB"
 
-      # ============ STEP 2 - BIKIN USER ============
-      - name: 2. Bikin User
+      # ============ STEP 2 - USER + WINDOWS UPDATE ============
+      - name: 2. Bikin User + Windows Update
         shell: pwsh
         continue-on-error: true
         run: |
@@ -44,10 +39,12 @@ jobs:
           net user $u $p /add /y
           net localgroup Administrators $u /add
           net localgroup 'Remote Desktop Users' $u /add
-          Write-Host "[OK] User: $u"
+          Set-Service -Name wuauserv -StartupType Automatic -ErrorAction SilentlyContinue
+          Start-Service -Name wuauserv -ErrorAction SilentlyContinue
+          Write-Host "[OK] User $u dibuat"
 
-      # ============ STEP 3 - WALLPAPER + TAMPILAN WIN11 ============
-      - name: 3. Wallpaper + Tampilan Mirip Windows 11
+      # ============ STEP 3 - WALLPAPER + THEME + TAMPILAN WIN11 ============
+      - name: 3. Wallpaper + Theme Market + Tampilan Win11
         shell: pwsh
         continue-on-error: true
         run: |
@@ -58,20 +55,32 @@ jobs:
             Write-Host '[OK] Wallpaper'
           } catch { Write-Host '[!] Wallpaper gagal' }
           
+          $themeDir = 'C:\OXZRDP\Themes'
+          New-Item -ItemType Directory -Path $themeDir -Force | Out-Null
+          $themes = @(
+            @{n='Win11-Bloom'; u='https://images.unsplash.com/photo-1633511090164-b43840ea90bf?w=1920'},
+            @{n='Dark-Abstract'; u='https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1920'},
+            @{n='Blue-Gradient'; u='https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1920'},
+            @{n='Space-Galaxy'; u='https://images.unsplash.com/photo-1462331940025-496dfbfc7564?w=1920'}
+          )
+          foreach ($t in $themes) {
+            try {
+              Invoke-WebRequest -Uri $t.u -OutFile "$themeDir\$($t.n).jpg" -UseBasicParsing -TimeoutSec 30
+              Write-Host "[OK] Tema $($t.n)"
+            } catch { }
+          }
+          
           $adv = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced'
           Set-ItemProperty -Path $adv -Name 'TaskbarAl' -Value 1 -Force -ErrorAction SilentlyContinue
           Set-ItemProperty -Path $adv -Name 'TaskbarSi' -Value 1 -Force -ErrorAction SilentlyContinue
-          
           $theme = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize'
           Set-ItemProperty -Path $theme -Name 'AppsUseLightTheme' -Value 0 -Force -ErrorAction SilentlyContinue
           Set-ItemProperty -Path $theme -Name 'SystemUsesLightTheme' -Value 0 -Force -ErrorAction SilentlyContinue
-          
           $dwm = 'HKCU:\Software\Microsoft\Windows\DWM'
           Set-ItemProperty -Path $dwm -Name 'ColorizationColor' -Value 0xC40078D7 -Force -ErrorAction SilentlyContinue
           Set-ItemProperty -Path $dwm -Name 'ColorPrevalence' -Value 1 -Force -ErrorAction SilentlyContinue
-          
           Stop-Process -Name explorer -Force -ErrorAction SilentlyContinue
-          Write-Host '[OK] Tampilan mirip Windows 11 aktif'
+          Write-Host '[OK] Tampilan mirip Win11 aktif'
 
       # ============ STEP 4 - OPTIMASI ============
       - name: 4. Optimasi Anti Lag
@@ -92,31 +101,174 @@ jobs:
           powercfg -setactive 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c 2>$null
           Write-Host '[OK] Optimasi selesai'
 
-      # ============ STEP 5 - INSTALL APP + GAME RINGAN ============
-      - name: 5. Install Apps + Game Ringan
+      # ============ STEP 5 - APPS UTAMA ============
+      - name: 5. Install Discord + Chrome + Spotify + VLC + Notepad++ + WhatsApp
         shell: pwsh
         continue-on-error: true
         run: |
           $apps = @(
             @{id='Discord.Discord'; name='Discord'},
             @{id='Google.Chrome'; name='Chrome'},
+            @{id='Spotify.Spotify'; name='Spotify'},
             @{id='VideoLAN.VLC'; name='VLC'},
-            @{id='Valve.Steam'; name='Steam'},
-            @{id='PrismLauncher.PrismLauncher'; name='PrismLauncher'},
-            @{id='7zip.7zip'; name='7-Zip'}
+            @{id='Notepad++.Notepad++'; name='Notepad++'},
+            @{id='WhatsApp.WhatsApp'; name='WhatsApp'}
           )
           foreach ($app in $apps) {
             Write-Host "[+] Install $($app.name)..."
             try {
               winget install --id $($app.id) --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
-            } catch { Write-Host "[!] $($app.name) gagal" }
+            } catch { }
           }
           Get-Process Discord -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
           $global:LASTEXITCODE = 0
           exit 0
 
-      # ============ STEP 6 - OXZCHAT + INFO DEV + ADMIN ============
-      - name: 6. OxzChat + Info Developer + Admin
+      # ============ STEP 6 - STEAM + OFFICE + GAME ============
+      - name: 6. Install Steam + LibreOffice + PrismLauncher + 7-Zip + CPU-Z
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $apps = @(
+            @{id='Valve.Steam'; name='Steam'},
+            @{id='TheDocumentFoundation.LibreOffice'; name='LibreOffice'},
+            @{id='PrismLauncher.PrismLauncher'; name='PrismLauncher'},
+            @{id='7zip.7zip'; name='7-Zip'},
+            @{id='CPUID.CPU-Z'; name='CPU-Z'}
+          )
+          foreach ($app in $apps) {
+            Write-Host "[+] Install $($app.name)..."
+            try {
+              winget install --id $($app.id) --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+            } catch { }
+          }
+          $global:LASTEXITCODE = 0
+          exit 0
+
+      # ============ STEP 7 - MULTIMEDIA + UTILITY ============
+      - name: 7. Install OBS + Zoom + GIMP + Bitwarden + Audacity + Tor + CCleaner
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $apps = @(
+            @{id='OBSProject.OBSStudio'; name='OBS Studio'},
+            @{id='Zoom.Zoom'; name='Zoom'},
+            @{id='GIMP.GIMP'; name='GIMP'},
+            @{id='Bitwarden.Bitwarden'; name='Bitwarden'},
+            @{id='Audacity.Audacity'; name='Audacity'},
+            @{id='TorProject.TorBrowser'; name='Tor Browser'},
+            @{id='Piriform.CCleaner'; name='CCleaner'}
+          )
+          foreach ($app in $apps) {
+            Write-Host "[+] Install $($app.name)..."
+            try {
+              winget install --id $($app.id) --exact --silent --accept-package-agreements --accept-source-agreements --disable-interactivity
+            } catch { }
+          }
+          $global:LASTEXITCODE = 0
+          exit 0
+
+      # ============ STEP 8 - ROBOT INFO ============
+      - name: 8. Robot Info Desktop
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $toolDir = 'C:\OXZRDP'
+          New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
+          Add-Type -AssemblyName System.Drawing
+          $ico = New-Object System.Drawing.Bitmap 256, 256
+          $g = [System.Drawing.Graphics]::FromImage($ico)
+          $g.SmoothingMode = [System.Drawing.Drawing2D.SmoothingMode]::AntiAlias
+          $g.Clear([System.Drawing.Color]::White)
+          $blue = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::FromArgb(50, 120, 220))
+          $white = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::White)
+          $black = New-Object System.Drawing.SolidBrush ([System.Drawing.Color]::Black)
+          $g.FillRectangle($blue, 60, 90, 136, 120)
+          $g.FillRectangle($blue, 80, 40, 96, 60)
+          $g.FillEllipse($white, 100, 60, 20, 20)
+          $g.FillEllipse($white, 136, 60, 20, 20)
+          $g.FillEllipse($black, 108, 66, 10, 10)
+          $g.FillEllipse($black, 144, 66, 10, 10)
+          $g.FillRectangle($black, 110, 82, 36, 6)
+          $pen = New-Object System.Drawing.Pen ([System.Drawing.Color]::FromArgb(50, 120, 220)), 4
+          $g.DrawLine($pen, 128, 40, 128, 15)
+          $g.FillEllipse($blue, 120, 5, 16, 16)
+          $g.FillRectangle($blue, 30, 110, 25, 80)
+          $g.FillRectangle($blue, 201, 110, 25, 80)
+          $g.FillRectangle($blue, 80, 215, 40, 30)
+          $g.FillRectangle($blue, 136, 215, 40, 30)
+          $g.Dispose()
+          $pngPath = "$toolDir\robot.png"
+          $ico.Save($pngPath, [System.Drawing.Imaging.ImageFormat]::Png)
+          $ico.Dispose()
+          
+          $infoPath = "$toolDir\Tentang-OXZRDP.ps1"
+          $lines = @()
+          $lines += 'Add-Type -AssemblyName PresentationFramework'
+          $lines += '$msg = "========================================`n   OXZRDP V10 - TENTANG`n========================================`n`n  Versi     : V10`n  Nama Asli : Rafandra Darrel Juliano`n  Panggilan : Yannzz`n  Tim       : OxzStudios`n`n========================================`n   FITUR AKTIF V10`n========================================`n  - Steam + PrismLauncher`n  - LibreOffice, 7-Zip, CPU-Z`n  - Discord, Chrome, Spotify, VLC`n  - WhatsApp, Notepad++`n  - OBS, Zoom, GIMP, Bitwarden`n  - Audacity, Tor, CCleaner`n  - WiFi Manager`n  - Theme Market`n  - OxzChat Messenger`n`n========================================`n   APLIKASI OXZ`n========================================`n  OxzChat : https://oxzchatmessenger.vercel.app`n`n========================================`n   ADMIN / DUKUNGAN`n========================================`n  WhatsApp : +62 851-6157-1110`n`n========================================`n   WEBSITE dan COMMUNITY`n========================================`n  Website   : https://oxzratxone-official.netlify.app`n  Community : https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3`n`n========================================`n  (c) 2026 Yannzz dan OxzStudios`n========================================"'
+          $lines += '$window = New-Object System.Windows.Window'
+          $lines += '$window.Title = "Tentang OXZRDP V10"'
+          $lines += '$window.Width = 650'
+          $lines += '$window.Height = 780'
+          $lines += '$window.WindowStartupLocation = "CenterScreen"'
+          $lines += '$window.Background = "White"'
+          $lines += '$scroll = New-Object System.Windows.Controls.ScrollViewer'
+          $lines += '$tb = New-Object System.Windows.Controls.TextBox'
+          $lines += '$tb.Text = $msg'
+          $lines += '$tb.FontFamily = "Consolas"'
+          $lines += '$tb.FontSize = 12'
+          $lines += '$tb.IsReadOnly = $true'
+          $lines += '$tb.Background = "White"'
+          $lines += '$tb.BorderThickness = 0'
+          $lines += '$tb.Margin = "10"'
+          $lines += '$scroll.Content = $tb'
+          $lines += '$window.Content = $scroll'
+          $lines += '$window.ShowDialog() | Out-Null'
+          $lines -join "`n" | Out-File -FilePath $infoPath -Encoding utf8
+          
+          $Shell = New-Object -ComObject WScript.Shell
+          $sc = $Shell.CreateShortcut('C:\Users\Public\Desktop\Tentang OXZRDP.lnk')
+          $sc.TargetPath = 'powershell.exe'
+          $sc.Arguments = "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$infoPath`""
+          $sc.IconLocation = "$pngPath,0"
+          $sc.Save()
+          Write-Host '[OK] Robot Info terpasang'
+
+      # ============ STEP 9 - WIFI MANAGER ============
+      - name: 9. WiFi Manager
+        shell: pwsh
+        continue-on-error: true
+        run: |
+          $toolDir = 'C:\OXZRDP'
+          New-Item -ItemType Directory -Path $toolDir -Force | Out-Null
+          $wifiPath = "$toolDir\WiFiInfo.ps1"
+          $lines = @()
+          $lines += 'Write-Host "===== OXZRDP V10 - WIFI INFO =====" -ForegroundColor Cyan'
+          $lines += 'Write-Host ""'
+          $lines += 'Write-Host "--- WiFi Networks ---" -ForegroundColor Yellow'
+          $lines += '$wifi = netsh wlan show networks mode=bssid 2>$null'
+          $lines += 'if ($wifi) { $wifi | Write-Host } else { Write-Host "WiFi adapter tidak ada di VM (normal)." }'
+          $lines += 'Write-Host ""'
+          $lines += 'Write-Host "--- IP Configuration ---" -ForegroundColor Yellow'
+          $lines += 'ipconfig | Write-Host'
+          $lines += 'Write-Host ""'
+          $lines += 'Write-Host "--- Tailscale Status ---" -ForegroundColor Yellow'
+          $lines += '$tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"'
+          $lines += 'if (Test-Path $tsExe) { & $tsExe status | Write-Host } else { Write-Host "Tailscale belum install." }'
+          $lines += 'Write-Host ""'
+          $lines += 'Read-Host "Enter untuk keluar"'
+          $lines -join "`n" | Out-File -FilePath $wifiPath -Encoding utf8
+          
+          $Shell = New-Object -ComObject WScript.Shell
+          $sc = $Shell.CreateShortcut('C:\Users\Public\Desktop\WiFi Manager.lnk')
+          $sc.TargetPath = 'powershell.exe'
+          $sc.Arguments = "-ExecutionPolicy Bypass -NoExit -File `"$wifiPath`""
+          $sc.IconLocation = 'C:\Windows\System32\shell32.dll,17'
+          $sc.Save()
+          Write-Host '[OK] WiFi Manager terpasang'
+
+      # ============ STEP 10 - OXZCHAT + INFO DEV + ADMIN + SHORTCUT ============
+      - name: 10. OxzChat + Info Developer + Admin + Changelog + Shortcut
         shell: pwsh
         continue-on-error: true
         run: |
@@ -126,6 +278,35 @@ jobs:
           $scChat = $Shell.CreateShortcut("$Desktop\OxzChat Messenger.url")
           $scChat.TargetPath = 'https://oxzchatmessenger.vercel.app'
           $scChat.Save()
+          
+          $list = @(
+            @{n='Steam.url'; t='https://store.steampowered.com'},
+            @{n='Play Store.url'; t='https://play.google.com/store'},
+            @{n='APK Downloader.url'; t='https://apkpure.com'},
+            @{n='Website OXZ.url'; t='https://oxzratxone-official.netlify.app'},
+            @{n='Community WhatsApp.url'; t='https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'},
+            @{n='Spotify Web.url'; t='https://open.spotify.com'},
+            @{n='YouTube.url'; t='https://www.youtube.com'},
+            @{n='Speed Test.url'; t='https://fast.com'},
+            @{n='Windows Update.url'; t='ms-settings:windowsupdate'}
+          )
+          foreach ($item in $list) {
+            $s = $Shell.CreateShortcut("$Desktop\$($item.n)")
+            $s.TargetPath = $item.t
+            $s.Save()
+          }
+          
+          $scAdmin = $Shell.CreateShortcut("$Desktop\Admin OXZRDP.lnk")
+          $scAdmin.TargetPath = 'https://wa.me/6285161571110?text=Halo%20Admin%20OXZRDP'
+          $scAdmin.Save()
+          
+          $scGopay = $Shell.CreateShortcut("$Desktop\Dukung Developer (GoPay).lnk")
+          $scGopay.TargetPath = 'https://wa.me/6285161571110?text=Saya%20mau%20dukung%20developer%20OXZRDP%20via%20GoPay'
+          $scGopay.Save()
+          
+          $scBug = $Shell.CreateShortcut("$Desktop\Lapor Bug WhatsApp.lnk")
+          $scBug.TargetPath = 'https://wa.me/6285161571110?text=Halo%20saya%20mau%20lapor%20bug%20OXZRDP%20V10'
+          $scBug.Save()
           
           $devInfo = @()
           $devInfo += '==============================================='
@@ -137,7 +318,7 @@ jobs:
           $devInfo += 'Tim           : OxzStudios'
           $devInfo += ''
           $devInfo += '==============================================='
-          $devInfo += '   APLIKASI'
+          $devInfo += '   APLIKASI OXZ'
           $devInfo += '==============================================='
           $devInfo += 'OxzChat Messenger'
           $devInfo += 'URL: https://oxzchatmessenger.vercel.app'
@@ -158,33 +339,6 @@ jobs:
           $devInfo += '==============================================='
           $devInfo | Out-File -FilePath "$Desktop\INFO-DEVELOPER.txt" -Encoding utf8
           
-          $scAdmin = $Shell.CreateShortcut("$Desktop\Admin OXZRDP.lnk")
-          $scAdmin.TargetPath = 'https://wa.me/6285161571110?text=Halo%20Admin%20OXZRDP'
-          $scAdmin.Save()
-          
-          $scGopay = $Shell.CreateShortcut("$Desktop\Dukung Developer (GoPay).lnk")
-          $scGopay.TargetPath = 'https://wa.me/6285161571110?text=Saya%20mau%20dukung%20developer%20OXZRDP%20via%20GoPay'
-          $scGopay.Save()
-          
-          $list = @(
-            @{n='Website OXZ.url'; t='https://oxzratxone-official.netlify.app'},
-            @{n='Community WhatsApp.url'; t='https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'},
-            @{n='YouTube.url'; t='https://www.youtube.com'},
-            @{n='Speed Test.url'; t='https://fast.com'}
-          )
-          foreach ($item in $list) {
-            $s = $Shell.CreateShortcut("$Desktop\$($item.n)")
-            $s.TargetPath = $item.t
-            $s.Save()
-          }
-          
-          Write-Host '[OK] OxzChat + Info Dev + Admin terpasang'
-
-      # ============ STEP 7 - CHANGELOG ============
-      - name: 7. Changelog
-        shell: pwsh
-        continue-on-error: true
-        run: |
           $cl = @()
           $cl += '==============================================='
           $cl += '   OXZRDP V10 - CHANGELOG'
@@ -193,20 +347,21 @@ jobs:
           $cl += ''
           $cl += 'V10 (Sekarang)'
           $cl += '==============================================='
-          $cl += '[+] Rename Nama PC'
-          $cl += '[+] Tampilan mirip Windows 11 (cosmetic)'
+          $cl += '[+] Tampilan mirip Windows 11'
           $cl += '[+] OxzChat Messenger'
           $cl += '[+] Info Developer'
           $cl += '[+] Admin WhatsApp +62 851-6157-1110'
-          $cl += '[+] Discord + Chrome + VLC + Steam'
-          $cl += '[+] PrismLauncher (Minecraft)'
-          $cl += '[+] Optimasi Anti Lag'
+          $cl += '[+] Steam + PrismLauncher'
+          $cl += '[+] LibreOffice, 7-Zip, CPU-Z'
+          $cl += '[+] Discord, Chrome, Spotify, VLC, WhatsApp'
+          $cl += '[+] OBS, Zoom, GIMP, Bitwarden, Audacity, Tor, CCleaner'
+          $cl += '[+] WiFi Manager'
+          $cl += '[+] Theme Market'
           $cl += ''
           $cl += 'CATATAN:'
           $cl += '- Windows Server (runner GitHub)'
           $cl += '- RAM 7 GB'
           $cl += '- Roblox TIDAK SUPPORT'
-          $cl += '- Game berat TIDAK SUPPORT'
           $cl += ''
           $cl += '==============================================='
           $cl += 'OxzChat : https://oxzchatmessenger.vercel.app'
@@ -214,61 +369,45 @@ jobs:
           $cl += 'Website : https://oxzratxone-official.netlify.app'
           $cl += 'Community: https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'
           $cl += '==============================================='
-          $cl | Out-File -FilePath 'C:\Users\Public\Desktop\CHANGELOG.txt' -Encoding utf8
-          Write-Host '[OK] Changelog terpasang'
+          $cl | Out-File -FilePath "$Desktop\CHANGELOG.txt" -Encoding utf8
+          $cl | Out-File -FilePath 'C:\Users\Public\Documents\OXZRDP-CHANGELOG.txt' -Encoding utf8
+          Write-Host '[OK] OxzChat + Info Dev + Admin + Changelog + Shortcut terpasang'
 
-      # ============ STEP 8 - TAILSCALE + INFO + KEEP ALIVE ============
-      - name: 8. Tailscale + Info + Keep Alive
+      # ============ STEP 11 - TAILSCALE + INFO + KEEP ALIVE ============
+      - name: 11. Tailscale + Info Akses + Keep Alive
         shell: pwsh
         env:
           TS_AUTHKEY: ${{ secrets.TS_KEY }}
         run: |
-          Write-Host "=== CEK SECRET ==="
           if ([string]::IsNullOrWhiteSpace($env:TS_AUTHKEY)) {
-            Write-Host "[X] SECRET TS_KEY KOSONG"
             Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=NO-KEY"
           } else {
-            Write-Host "[OK] Secret kebaca ($($env:TS_AUTHKEY.Length) karakter)"
-            
             try {
               $msi = "$env:TEMP\ts.msi"
               Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
               Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
-              Start-Sleep -Seconds 10
-            } catch {
-              Write-Host "[X] Gagal download MSI"
-            }
-            
-            $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
-            if (Test-Path $tsExe) {
-              Write-Host "[OK] Tailscale terinstall"
-              $hostname = "OXZRDP-$(Get-Random -Min 10000 -Max 99999)"
-              Write-Host "[+] Tailscale up: $hostname"
-              & $tsExe up --authkey=$env:TS_AUTHKEY --hostname=$hostname --accept-routes 2>&1 | Write-Host
+              Start-Sleep -Seconds 5
               
-              Write-Host "=== TUNGGU IP (MAX 180 detik) ==="
-              $ip = $null
-              for ($i = 1; $i -le 36; $i++) {
-                Start-Sleep -Seconds 5
-                $ipCheck = & $tsExe ip -4 2>$null
-                if (-not [string]::IsNullOrWhiteSpace($ipCheck)) {
-                  $ip = $ipCheck
-                  Write-Host "[OK] IP di percobaan $i : $ip"
-                  break
+              $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
+              if (Test-Path $tsExe) {
+                $hostname = "OXZRDP-$((Get-Random -Min 10000 -Max 99999))"
+                & $tsExe up --authkey=$env:TS_AUTHKEY --hostname=$hostname --accept-routes 2>&1 | Write-Host
+                
+                $ip = $null
+                for ($i = 1; $i -le 24; $i++) {
+                  Start-Sleep -Seconds 5
+                  $ipCheck = & $tsExe ip -4 2>$null
+                  if (-not [string]::IsNullOrWhiteSpace($ipCheck)) { $ip = $ipCheck; break }
                 }
-                Write-Host "[...] Percobaan $i/36"
+                
+                if ([string]::IsNullOrWhiteSpace($ip)) {
+                  Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=TAILSCALE-GAGAL"
+                } else {
+                  Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=$ip"
+                }
               }
-              
-              if ([string]::IsNullOrWhiteSpace($ip)) {
-                Write-Host "[X] GAGAL DAPET IP - Status:"
-                & $tsExe status 2>&1 | Write-Host
-                Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=GAGAL"
-              } else {
-                Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=$ip"
-              }
-            } else {
-              Write-Host "[X] Tailscale GAK keinstall"
-              Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=NOT-INSTALLED"
+            } catch {
+              Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=ERROR"
             }
           }
           
