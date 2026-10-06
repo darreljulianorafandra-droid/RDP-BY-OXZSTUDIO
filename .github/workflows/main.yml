@@ -221,23 +221,22 @@ jobs:
       - name: 8. Tailscale + Info + Keep Alive
         shell: pwsh
         env:
-          TS_AUTHKEY: ${{ secrets.OXZ_KEY }}
+          TS_AUTHKEY: ${{ secrets.TS_KEY }}
         run: |
           Write-Host "=== CEK SECRET ==="
           if ([string]::IsNullOrWhiteSpace($env:TS_AUTHKEY)) {
-            Write-Host "[X] SECRET KOSONG - cek Settings > Secrets > Actions"
+            Write-Host "[X] SECRET TS_KEY KOSONG"
             Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=NO-KEY"
           } else {
             Write-Host "[OK] Secret kebaca ($($env:TS_AUTHKEY.Length) karakter)"
             
-            # Install Tailscale
             try {
               $msi = "$env:TEMP\ts.msi"
               Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
               Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
               Start-Sleep -Seconds 10
             } catch {
-              Write-Host "[X] Gagal download MSI: $($_.Exception.Message)"
+              Write-Host "[X] Gagal download MSI"
             }
             
             $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
@@ -294,6 +293,6 @@ jobs:
           $endTime = (Get-Date).AddMinutes(1435)
           while ((Get-Date) -lt $endTime) {
             $remaining = $endTime - (Get-Date)
-            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $ip | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
+            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Online | IP: $env:OXZRDP_IP | Sisa: $($remaining.ToString('hh\:mm\:ss'))"
             Start-Sleep -Seconds 300
           }
