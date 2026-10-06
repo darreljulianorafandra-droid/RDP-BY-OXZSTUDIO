@@ -102,7 +102,7 @@ jobs:
             @{id='Google.Chrome'; name='Chrome'},
             @{id='VideoLAN.VLC'; name='VLC'},
             @{id='Valve.Steam'; name='Steam'},
-            @{id='PrismLauncher.PrismLauncher'; name='PrismLauncher (Minecraft)'},
+            @{id='PrismLauncher.PrismLauncher'; name='PrismLauncher'},
             @{id='7zip.7zip'; name='7-Zip'}
           )
           foreach ($app in $apps) {
@@ -123,12 +123,10 @@ jobs:
           $Desktop = 'C:\Users\Public\Desktop'
           $Shell = New-Object -ComObject WScript.Shell
           
-          # OxzChat Messenger
           $scChat = $Shell.CreateShortcut("$Desktop\OxzChat Messenger.url")
           $scChat.TargetPath = 'https://oxzchatmessenger.vercel.app'
           $scChat.Save()
           
-          # Info Developer
           $devInfo = @()
           $devInfo += '==============================================='
           $devInfo += '   OXZRDP V10 - INFO DEVELOPER'
@@ -151,7 +149,6 @@ jobs:
           $devInfo += 'Chat Langsung  : https://wa.me/6285161571110'
           $devInfo += ''
           $devInfo += 'Dukung developer via GoPay ke nomor di atas.'
-          $devInfo += 'Terima kasih buat yang udah support!'
           $devInfo += ''
           $devInfo += '==============================================='
           $devInfo += '   WEBSITE & COMMUNITY'
@@ -161,17 +158,14 @@ jobs:
           $devInfo += '==============================================='
           $devInfo | Out-File -FilePath "$Desktop\INFO-DEVELOPER.txt" -Encoding utf8
           
-          # Admin Shortcut
           $scAdmin = $Shell.CreateShortcut("$Desktop\Admin OXZRDP.lnk")
           $scAdmin.TargetPath = 'https://wa.me/6285161571110?text=Halo%20Admin%20OXZRDP'
           $scAdmin.Save()
           
-          # GoPay Shortcut
           $scGopay = $Shell.CreateShortcut("$Desktop\Dukung Developer (GoPay).lnk")
           $scGopay.TargetPath = 'https://wa.me/6285161571110?text=Saya%20mau%20dukung%20developer%20OXZRDP%20via%20GoPay'
           $scGopay.Save()
           
-          # Shortcut lain
           $list = @(
             @{n='Website OXZ.url'; t='https://oxzratxone-official.netlify.app'},
             @{n='Community WhatsApp.url'; t='https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'},
@@ -186,13 +180,11 @@ jobs:
           
           Write-Host '[OK] OxzChat + Info Dev + Admin terpasang'
 
-      # ============ STEP 7 - CHANGELOG + GAME INFO ============
-      - name: 7. Changelog + Game Info
+      # ============ STEP 7 - CHANGELOG ============
+      - name: 7. Changelog
         shell: pwsh
         continue-on-error: true
         run: |
-          $Desktop = 'C:\Users\Public\Desktop'
-          
           $cl = @()
           $cl += '==============================================='
           $cl += '   OXZRDP V10 - CHANGELOG'
@@ -201,10 +193,10 @@ jobs:
           $cl += ''
           $cl += 'V10 (Sekarang)'
           $cl += '==============================================='
-          $cl += '[+] Rename Nama PC (bukan user)'
+          $cl += '[+] Rename Nama PC'
           $cl += '[+] Tampilan mirip Windows 11 (cosmetic)'
           $cl += '[+] OxzChat Messenger'
-          $cl += '[+] Info Developer (Rafandra Darrel Juliano / Yannzz)'
+          $cl += '[+] Info Developer'
           $cl += '[+] Admin WhatsApp +62 851-6157-1110'
           $cl += '[+] Discord + Chrome + VLC + Steam'
           $cl += '[+] PrismLauncher (Minecraft)'
@@ -212,16 +204,9 @@ jobs:
           $cl += ''
           $cl += 'CATATAN:'
           $cl += '- Windows Server (runner GitHub)'
-          $cl += '- RAM 7 GB (standard runner)'
+          $cl += '- RAM 7 GB'
           $cl += '- Roblox TIDAK SUPPORT'
           $cl += '- Game berat TIDAK SUPPORT'
-          $cl += ''
-          $cl += 'GAME YANG BISA:'
-          $cl += '- Minecraft Java (PrismLauncher)'
-          $cl += '- Stardew Valley'
-          $cl += '- Terraria'
-          $cl += '- Among Us'
-          $cl += '- Game indie 2D'
           $cl += ''
           $cl += '==============================================='
           $cl += 'OxzChat : https://oxzchatmessenger.vercel.app'
@@ -229,8 +214,7 @@ jobs:
           $cl += 'Website : https://oxzratxone-official.netlify.app'
           $cl += 'Community: https://chat.whatsapp.com/JxA3IUkILsDLUsx8u5Hnr3'
           $cl += '==============================================='
-          $cl | Out-File -FilePath "$Desktop\CHANGELOG.txt" -Encoding utf8
-          
+          $cl | Out-File -FilePath 'C:\Users\Public\Desktop\CHANGELOG.txt' -Encoding utf8
           Write-Host '[OK] Changelog terpasang'
 
       # ============ STEP 8 - TAILSCALE + INFO + KEEP ALIVE ============
@@ -239,35 +223,53 @@ jobs:
         env:
           TS_AUTHKEY: ${{ secrets.OXZ_KEY }}
         run: |
+          Write-Host "=== CEK SECRET ==="
           if ([string]::IsNullOrWhiteSpace($env:TS_AUTHKEY)) {
+            Write-Host "[X] SECRET KOSONG - cek Settings > Secrets > Actions"
             Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=NO-KEY"
           } else {
+            Write-Host "[OK] Secret kebaca ($($env:TS_AUTHKEY.Length) karakter)"
+            
+            # Install Tailscale
             try {
               $msi = "$env:TEMP\ts.msi"
               Invoke-WebRequest -Uri 'https://pkgs.tailscale.com/stable/tailscale-setup-1.82.0-amd64.msi' -OutFile $msi
               Start-Process msiexec.exe -ArgumentList '/i', "`"$msi`"", '/quiet', '/norestart' -Wait
-              Start-Sleep -Seconds 5
-              
-              $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
-              if (Test-Path $tsExe) {
-                $hostname = "OXZRDP-V10-$((Get-Random -Min 100 -Max 999))"
-                & $tsExe up --authkey=$env:TS_AUTHKEY --hostname=$hostname --accept-routes 2>&1 | Write-Host
-                
-                $ip = $null
-                for ($i = 1; $i -le 24; $i++) {
-                  Start-Sleep -Seconds 5
-                  $ipCheck = & $tsExe ip -4 2>$null
-                  if (-not [string]::IsNullOrWhiteSpace($ipCheck)) { $ip = $ipCheck; break }
-                }
-                
-                if ([string]::IsNullOrWhiteSpace($ip)) {
-                  Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=TAILSCALE-GAGAL"
-                } else {
-                  Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=$ip"
-                }
-              }
+              Start-Sleep -Seconds 10
             } catch {
-              Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=ERROR"
+              Write-Host "[X] Gagal download MSI: $($_.Exception.Message)"
+            }
+            
+            $tsExe = "$env:ProgramFiles\Tailscale\tailscale.exe"
+            if (Test-Path $tsExe) {
+              Write-Host "[OK] Tailscale terinstall"
+              $hostname = "OXZRDP-$(Get-Random -Min 10000 -Max 99999)"
+              Write-Host "[+] Tailscale up: $hostname"
+              & $tsExe up --authkey=$env:TS_AUTHKEY --hostname=$hostname --accept-routes 2>&1 | Write-Host
+              
+              Write-Host "=== TUNGGU IP (MAX 180 detik) ==="
+              $ip = $null
+              for ($i = 1; $i -le 36; $i++) {
+                Start-Sleep -Seconds 5
+                $ipCheck = & $tsExe ip -4 2>$null
+                if (-not [string]::IsNullOrWhiteSpace($ipCheck)) {
+                  $ip = $ipCheck
+                  Write-Host "[OK] IP di percobaan $i : $ip"
+                  break
+                }
+                Write-Host "[...] Percobaan $i/36"
+              }
+              
+              if ([string]::IsNullOrWhiteSpace($ip)) {
+                Write-Host "[X] GAGAL DAPET IP - Status:"
+                & $tsExe status 2>&1 | Write-Host
+                Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=GAGAL"
+              } else {
+                Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=$ip"
+              }
+            } else {
+              Write-Host "[X] Tailscale GAK keinstall"
+              Add-Content -Path $env:GITHUB_ENV -Value "OXZRDP_IP=NOT-INSTALLED"
             }
           }
           
